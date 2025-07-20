@@ -37,6 +37,7 @@ def fetch_html(url):
         response.raise_for_status()
         return response.text
     except requests.RequestException:
+        # Silent fail, no error print
         return None
 
 def clean_url(url, base_url):
@@ -116,7 +117,6 @@ def download_media(media_info, output_folder="downloads"):
         _, ext = os.path.splitext(filename)
         media_type = get_media_type(ext)
 
-        # Folder structure: downloads/<MediaType>/
         folder_path = os.path.join(output_folder, media_type)
         os.makedirs(folder_path, exist_ok=True)
 
@@ -167,6 +167,7 @@ def main():
     media_info_all = []
 
     if not has_pagination:
+        # Single page scraping - print always
         print(f"\n🔎 Scraping single page: {start_url}")
         html = fetch_html(start_url)
         if not html:
@@ -184,14 +185,14 @@ def main():
 
         for page_num in range(1, max_pages + 1):
             page_url = update_url_page(start_url, page_num)
-            print(f"\n🔎 Scraping page {page_num}: {page_url}")
 
             html = fetch_html(page_url)
             if not html:
                 consecutive_failures += 1
                 if consecutive_failures >= max_consecutive_failures:
-                    print(f"⚠️ Stopped after {max_consecutive_failures} consecutive failed pages.")
+                    # Stop silently after max consecutive fails
                     break
+                # silently skip page
                 continue
 
             consecutive_failures = 0
@@ -199,7 +200,7 @@ def main():
             new_items = [item for item in media_items if item["url"] not in all_urls_seen]
 
             if not new_items:
-                print("⚠️ No new media found. Stopping.")
+                # silently stop when no new media
                 break
 
             for item in new_items:
