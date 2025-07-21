@@ -234,7 +234,6 @@ name = "scraping-project"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "beautifulsoup4" },
     { name = "bs4" },
     { name = "pandas" },
     { name = "requests" },
@@ -244,7 +243,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "beautifulsoup4", specifier = ">=4.13.4" },
     { name = "bs4", specifier = ">=0.0.2" },
     { name = "pandas", specifier = ">=2.3.1" },
     { name = "requests", specifier = ">=2.32.4" },
