@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl unzip gnupg2 wget chromium chromium-driver \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set Chrome driver env
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
+
+# Set workdir
+WORKDIR /app
+
+# Copy scripts
+COPY ./scripts/dofus-scraping.py ./scripts/dofus-scraping.py
+
+# Install Python deps
+COPY requirements-scraper.txt .
+RUN pip install --no-cache-dir -r requirements-scraper.txt
+
+# Create volume folders
+RUN mkdir -p /app/download/Images
+
+# Run script
+CMD ["python", "./scripts/dofus-scraping.py"]

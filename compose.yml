@@ -1,0 +1,50 @@
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: dofus_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile.scraper
+    container_name: dofus_scraper
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - ./download:/app/download
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: dofus_streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+      - ./download:/app/download
+    depends_on:
+      - scraper
+
+
+volumes:
+  pgdata:
+
+networks:
+  default:
+    name: dofus_network

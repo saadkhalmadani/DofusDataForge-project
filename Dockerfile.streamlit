@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+# Install Streamlit dependencies
+RUN apt-get update && apt-get install -y \
+    libglib2.0-0 libsm6 libxext6 libxrender-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy script
+COPY ./scripts/app.py ./scripts/app.py
+
+# Install Python deps
+COPY requirements-streamlit.txt .
+RUN pip install --no-cache-dir -r requirements-streamlit.txt
+
+# Copy image and CSV folder mount point
+RUN mkdir -p /app/download/Images
+
+# Run Streamlit
+CMD ["streamlit", "run", "./scripts/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
