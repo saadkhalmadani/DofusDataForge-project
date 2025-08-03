@@ -2,9 +2,9 @@ import os
 import re
 import logging
 import requests
+import pandas as pd
 import psycopg2
 import streamlit as st
-import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -14,18 +14,12 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from urllib.parse import urljoin
 
-# ========== Config ==========
+# Config
 BASE_URL = "https://www.dofus-touch.com/fr/mmorpg/encyclopedie/monstres?text=&monster_level_min=1&monster_level_max=1200&monster_type[0]=archimonster"
 PAGES_TO_SCRAPE = 12
 DOWNLOAD_DIR = "download/Images"
 EXPORT_DIR = "download"
-DB_NAME = st.secrets["postgres"]["database"]
-DB_USER = st.secrets["postgres"]["user"]
-DB_PASS = st.secrets["postgres"]["password"]
-DB_HOST = st.secrets["postgres"]["host"]
-DB_PORT = st.secrets["postgres"]["port"]
 
-# ========== Logging ==========
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def setup_driver():
@@ -169,16 +163,14 @@ def populate_user_monsters(df):
     except Exception as e:
         logging.error(f"❌ Error inserting ownership data: {e}")
 
-
 def run_scraper():
     driver = setup_driver()
     all_monsters = []
     try:
-        for page in range(1, PAGES_TO_SCRAPE + 1):
-            logging.info(f"🔎 Scraping page {page}/{PAGES_TO_SCRAPE}")
-            soup = get_page_html(driver, page)
-            monsters = extract_monsters(soup)
-            all_monsters.extend(monsters)
+        for i in range(1, PAGES_TO_SCRAPE + 1):
+            logging.info(f"🔍 Scraping page {i}...")
+            soup = get_page_html(driver, i)
+            all_monsters.extend(extract_monsters(soup))
     finally:
         driver.quit()
     return pd.DataFrame(all_monsters)
