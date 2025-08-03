@@ -1,4 +1,3 @@
-
 services:
 
   db:
@@ -36,16 +35,17 @@ services:
     container_name: dofus_streamlit
     ports:
       - "8501:8501"
+    depends_on:
+      db:
+        condition: service_healthy
+      scraper:
+        condition: service_healthy
     volumes:
       - .:/app
       - ./download:/app/download
-    depends_on:
-      - scraper
-
 
 volumes:
   pgdata:
-
 
 networks:
   default:
