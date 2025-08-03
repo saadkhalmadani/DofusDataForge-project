@@ -5,19 +5,17 @@ import psycopg2
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 
-# Load environment variables from .env file
+# ====== Load environment variables ======
 load_dotenv()
 
-# ====== Constants ======
 CSV_PATH = "download/archimonsters.csv"
 IMAGE_FOLDER = "download/Images"
 MONSTERS_PER_PAGE = 12
 
-# ====== Database Connection Helper ======
+# ====== DB Connection Helper ======
 def get_db_connection():
     database_url = os.getenv("DATABASE_URL")
     if database_url:
-        # Example: postgresql://user:pass@host:port/dbname
         parsed = urlparse(database_url)
         return psycopg2.connect(
             dbname=parsed.path.lstrip("/"),
@@ -35,6 +33,24 @@ def get_db_connection():
             port=os.getenv("POSTGRES_PORT", "5432")
         )
 
+# ====== Authentication ======
+if "user_id" not in st.session_state:
+    st.session_state.user_id = ""
+
+st.sidebar.markdown("## 🔐 Login")
+username = st.sidebar.text_input("Username", value=st.session_state.user_id)
+login_button = st.sidebar.button("🔓 Login")
+
+if login_button:
+    st.session_state.user_id = username.strip()
+    st.success(f"✅ Logged in as {st.session_state.user_id}")
+
+if not st.session_state.user_id:
+    st.warning("👤 Please log in to manage ownership.")
+    st.stop()
+
+current_user = st.session_state.user_id
+
 # ====== Load CSV ======
 if not os.path.exists(CSV_PATH):
     st.error(f"❌ File not found: {CSV_PATH}")
@@ -42,18 +58,15 @@ if not os.path.exists(CSV_PATH):
 
 df = pd.read_csv(CSV_PATH)
 
-# ====== Extract numeric level for filtering ======
-df["level_num"] = (
-    df["level"].astype(str).str.extract(r'(\d+)')[0]
-    .fillna(0).astype(int)
-)
+# ====== Extract numeric level ======
+df["level_num"] = df["level"].astype(str).str.extract(r'(\d+)')[0].fillna(0).astype(int)
 
-# ====== Streamlit Config ======
+# ====== Streamlit Setup ======
 st.set_page_config(page_title="Dofus Archimonsters Viewer", layout="wide")
 st.title("🧟‍♂️ Dofus Archimonsters Viewer")
-st.caption("Browse monsters scraped from Dofus Touch")
+st.caption(f"Logged in as: `{current_user}`")
 
-# ====== Load ownership data ======
+# ====== Ownership Loading/Updating ======
 @st.cache_data(ttl=300)
 def get_all_users():
     try:
@@ -65,7 +78,6 @@ def get_all_users():
         st.error(f"❌ Error loading users: {e}")
         return []
 
-@st.cache_data(ttl=300)
 def load_owned_monsters(user_id):
     try:
         with get_db_connection() as conn:
@@ -74,21 +86,32 @@ def load_owned_monsters(user_id):
                     SELECT monster_name, quantity FROM user_monsters
                     WHERE user_id = %s AND quantity > 0
                 """, (user_id,))
-                rows = cur.fetchall()
-                return {name: qty for name, qty in rows}
+                return dict(cur.fetchall())
     except Exception as e:
         st.error(f"❌ Error loading ownership: {e}")
         return {}
 
-# ====== Sidebar: Filters ======
-users = get_all_users()
-selected_user = st.sidebar.selectbox("👤 Select User", users if users else ["anonymous"])
+def update_quantity(user_id, monster_name, change):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO user_monsters (user_id, monster_name, quantity)
+                    VALUES (%s, %s, GREATEST(%s, 0))
+                    ON CONFLICT (user_id, monster_name) DO UPDATE
+                    SET quantity = GREATEST(user_monsters.quantity + %s, 0);
+                """, (user_id, monster_name, change, change))
+                conn.commit()
+    except Exception as e:
+        st.error(f"❌ Update error: {e}")
+
+# ====== Sidebar Filters ======
 ownership_filter = st.sidebar.radio("🎯 Filter by Ownership", ["All", "Owned", "Not Owned"])
 search_term = st.sidebar.text_input("🔍 Search monster by name").strip()
 level_range = st.sidebar.slider("🧪 Level Range", 0, 200, (0, 200))
 
-# ====== Apply filters ======
-owned_dict = load_owned_monsters(selected_user)
+# ====== Filtering Logic ======
+owned_dict = load_owned_monsters(current_user)
 owned_names = set(owned_dict.keys())
 
 filtered_df = df[
@@ -111,7 +134,7 @@ start = (page_number - 1) * MONSTERS_PER_PAGE
 end = start + MONSTERS_PER_PAGE
 paginated_df = filtered_df.iloc[start:end]
 
-# ====== Display Monsters ======
+# ====== Display Grid ======
 cols = st.columns(3)
 for idx, row in paginated_df.iterrows():
     col = cols[idx % 3]
@@ -122,14 +145,23 @@ for idx, row in paginated_df.iterrows():
             st.image(img_path)
         else:
             st.warning("⚠️ Image not found")
-        if row["name"] in owned_dict:
-            st.caption(f"🎚️ {row['level']} | ✅ Owned x{owned_dict[row['name']]}")
-        else:
-            st.caption(f"🎚️ {row['level']} | ❌ Not Owned")
+
+        qty = owned_dict.get(row["name"], 0)
+        st.caption(f"🎚️ {row['level']} | {'✅ Owned x' + str(qty) if qty else '❌ Not Owned'}")
+
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button(f"➕ {row['name']}", key=f"inc_{idx}"):
+                update_quantity(current_user, row["name"], 1)
+                st.rerun()
+        with col2:
+            if st.button(f"➖ {row['name']}", key=f"dec_{idx}"):
+                update_quantity(current_user, row["name"], -1)
+                st.rerun()
 
 # ====== Summary ======
 total_owned = len(owned_names)
 total_available = len(df)
 st.markdown("---")
-st.success(f"✅ Showing {len(paginated_df)} of {len(filtered_df)} matching monsters.")
-st.info(f"📊 {selected_user} owns {total_owned} out of {total_available} monsters.")
+st.success(f"✅ Showing {len(paginated_df)} of {len(filtered_df)} monsters.")
+st.info(f"📊 `{current_user}` owns {total_owned} out of {total_available} monsters.")
