@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import random
 import requests
 import pandas as pd
 import psycopg2
@@ -24,6 +25,8 @@ PAGES_TO_SCRAPE = 12
 DOWNLOAD_DIR = "/app/download/Images"
 EXPORT_DIR = "/app/download"
 
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
 # ========== Logging ==========
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -32,10 +35,6 @@ def setup_driver():
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36")
     return webdriver.Chrome(options=options)
 
 def sanitize_filename(name):
@@ -45,11 +44,10 @@ def get_extension_from_url(url):
     basename = url.split("/")[-1].split("?")[0]
     return os.path.splitext(basename)[1] or ".png"
 
-def download_image(url, monster_name, base_dir=DOWNLOAD_DIR):
-    os.makedirs(base_dir, exist_ok=True)
+def download_image(url, monster_name):
     safe_name = sanitize_filename(monster_name)
     ext = get_extension_from_url(url)
-    filepath = os.path.join(base_dir, f"{safe_name}{ext}")
+    filepath = os.path.join(DOWNLOAD_DIR, f"{safe_name}{ext}")
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -89,9 +87,6 @@ def extract_monsters(soup):
             continue
 
         name = cells[name_idx].get_text(strip=True)
-        if not name:
-            continue
-
         level = cells[level_idx].get_text(strip=True) if level_idx is not None else ""
         img_tag = cells[0].find("img")
         raw_img_url = img_tag["src"] if img_tag and "src" in img_tag.attrs else ""
@@ -139,20 +134,7 @@ def save_to_postgres(df):
     except Exception as e:
         logging.error(f"❌ PostgreSQL error: {e}")
 
-def run_scraper(pages=PAGES_TO_SCRAPE):
-    driver = setup_driver()
-    all_monsters = []
-    try:
-        for i in range(1, pages + 1):
-            logging.info(f"🔍 Scraping page {i}...")
-            soup = get_page_html(driver, i)
-            all_monsters.extend(extract_monsters(soup))
-    finally:
-        driver.quit()
-    return pd.DataFrame(all_monsters)
-
 def populate_user_monsters(df):
-    import random
     users = ['user_1', 'user_2']
     sample_names = df["name"].tolist()
 
@@ -182,13 +164,26 @@ def populate_user_monsters(df):
                             SET quantity = EXCLUDED.quantity;
                         """, (user, name, qty))
                 conn.commit()
-        logging.info("🧪 Test data with quantities inserted.")
+        logging.info("🧪 Sample user data inserted.")
     except Exception as e:
         logging.error(f"❌ Error inserting ownership data: {e}")
 
-if __name__ == "__main__":
+def run_scraper(pages=PAGES_TO_SCRAPE):
+    driver = setup_driver()
+    all_monsters = []
+    try:
+        for i in range(1, pages + 1):
+            logging.info(f"🔍 Scraping page {i}...")
+            soup = get_page_html(driver, i)
+            all_monsters.extend(extract_monsters(soup))
+    finally:
+        driver.quit()
+    return pd.DataFrame(all_monsters)
+
+def full_scrape_and_save():
     df = run_scraper()
     if not df.empty:
+        os.makedirs(EXPORT_DIR, exist_ok=True)
         df.to_csv(os.path.join(EXPORT_DIR, "archimonsters.csv"), index=False)
         df.to_json(os.path.join(EXPORT_DIR, "archimonsters.json"), orient="records", indent=2)
         save_to_postgres(df)
