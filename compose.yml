@@ -1,5 +1,6 @@
 
 services:
+
   db:
     image: postgres:15-alpine
     container_name: dofus_postgres
@@ -44,6 +45,7 @@ services:
 
 volumes:
   pgdata:
+
 
 networks:
   default:
