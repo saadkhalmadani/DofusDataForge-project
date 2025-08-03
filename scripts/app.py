@@ -4,9 +4,14 @@ import streamlit as st
 import psycopg2
 
 # ====== Config ======
-CSV_PATH = "download/archimonsters.csv"  # Relative path (Streamlit Cloud mounts to /app/)
+CSV_PATH = "/app/download/archimonsters.csv"
 IMAGE_FOLDER = "download/Images"
 MONSTERS_PER_PAGE = 12
+DB_NAME = "dofus_user"
+DB_USER = "dofus_user"
+DB_PASS = "dofus_pass"
+DB_HOST = "db"
+DB_PORT = "5432"
 
 # ====== Load CSV ======
 if not os.path.exists(CSV_PATH):
@@ -14,28 +19,20 @@ if not os.path.exists(CSV_PATH):
     st.stop()
 
 df = pd.read_csv(CSV_PATH)
+df["level_num"] = df["level"].astype(str).str.extract(r'(\d+)')[0].fillna(0).astype(int)
 
-# ====== Extract numeric level for filtering ======
-df["level_num"] = (
-    df["level"].astype(str).str.extract(r'(\d+)')[0]
-    .fillna(0).astype(int)
-)
-
-# ====== Streamlit Config ======
+# ====== Streamlit UI Config ======
 st.set_page_config(page_title="Dofus Archimonsters Viewer", layout="wide")
 st.title("🧟‍♂️ Dofus Archimonsters Viewer")
 st.caption("Browse monsters scraped from Dofus Touch")
 
-# ====== Connect to DB via Supabase URI ======
-@st.cache_resource
-def get_connection():
-    return psycopg2.connect(st.secrets["db"]["uri"])
-
-# ====== Load ownership data ======
 @st.cache_data(ttl=300)
 def get_all_users():
     try:
-        with get_connection() as conn:
+        with psycopg2.connect(
+            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
+            host=DB_HOST, port=DB_PORT
+        ) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT DISTINCT user_id FROM user_monsters ORDER BY user_id;")
                 return [row[0] for row in cur.fetchall()]
@@ -46,7 +43,10 @@ def get_all_users():
 @st.cache_data(ttl=300)
 def load_owned_monsters(user_id):
     try:
-        with get_connection() as conn:
+        with psycopg2.connect(
+            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
+            host=DB_HOST, port=DB_PORT
+        ) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT monster_name, quantity FROM user_monsters
@@ -58,14 +58,13 @@ def load_owned_monsters(user_id):
         st.error(f"❌ Error loading ownership: {e}")
         return {}
 
-# ====== Sidebar: Filters ======
+# ====== Sidebar Filters ======
 users = get_all_users()
 selected_user = st.sidebar.selectbox("👤 Select User", users if users else ["anonymous"])
 ownership_filter = st.sidebar.radio("🎯 Filter by Ownership", ["All", "Owned", "Not Owned"])
 search_term = st.sidebar.text_input("🔍 Search monster by name").strip()
 level_range = st.sidebar.slider("🧪 Level Range", 0, 200, (0, 200))
 
-# ====== Apply filters ======
 owned_dict = load_owned_monsters(selected_user)
 owned_names = set(owned_dict.keys())
 
@@ -106,8 +105,6 @@ for idx, row in paginated_df.iterrows():
             st.caption(f"🎚️ {row['level']} | ❌ Not Owned")
 
 # ====== Summary ======
-total_owned = len(owned_names)
-total_available = len(df)
 st.markdown("---")
 st.success(f"✅ Showing {len(paginated_df)} of {len(filtered_df)} matching monsters.")
-st.info(f"📊 {selected_user} owns {total_owned} out of {total_available} monsters.")
+st.info(f"📊 {selected_user} owns {len(owned_names)} out of {len(df)} monsters.")

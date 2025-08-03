@@ -21,10 +21,8 @@ DB_PASS = "dofus_pass"
 DB_HOST = "db"
 DB_PORT = "5432"
 PAGES_TO_SCRAPE = 12
-
-DOWNLOAD_DIR = "download/Images"
-EXPORT_DIR = "download"
-CSV_PATH = os.path.join(EXPORT_DIR, "archimonsters.csv")
+DOWNLOAD_DIR = "/app/download/Images"
+EXPORT_DIR = "/app/download"
 
 # ========== Logging ==========
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -36,8 +34,6 @@ def setup_driver():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36")
     return webdriver.Chrome(options=options)
 
 def sanitize_filename(name):
@@ -141,18 +137,6 @@ def save_to_postgres(df):
     except Exception as e:
         logging.error(f"❌ PostgreSQL error: {e}")
 
-def run_scraper(pages=PAGES_TO_SCRAPE):
-    driver = setup_driver()
-    all_monsters = []
-    try:
-        for i in range(1, pages + 1):
-            logging.info(f"🔍 Scraping page {i}...")
-            soup = get_page_html(driver, i)
-            all_monsters.extend(extract_monsters(soup))
-    finally:
-        driver.quit()
-    return pd.DataFrame(all_monsters)
-
 def populate_user_monsters(df):
     import random
     users = ['user_1', 'user_2']
@@ -188,11 +172,23 @@ def populate_user_monsters(df):
     except Exception as e:
         logging.error(f"❌ Error inserting ownership data: {e}")
 
+def run_scraper(pages=PAGES_TO_SCRAPE):
+    driver = setup_driver()
+    all_monsters = []
+    try:
+        for i in range(1, pages + 1):
+            logging.info(f"🔍 Scraping page {i}...")
+            soup = get_page_html(driver, i)
+            all_monsters.extend(extract_monsters(soup))
+    finally:
+        driver.quit()
+    return pd.DataFrame(all_monsters)
+
 if __name__ == "__main__":
-    os.makedirs(EXPORT_DIR, exist_ok=True)  # Ensure export folder exists
     df = run_scraper()
     if not df.empty:
-        df.to_csv(CSV_PATH, index=False)
+        os.makedirs(EXPORT_DIR, exist_ok=True)
+        df.to_csv(os.path.join(EXPORT_DIR, "archimonsters.csv"), index=False)
         df.to_json(os.path.join(EXPORT_DIR, "archimonsters.json"), orient="records", indent=2)
         save_to_postgres(df)
         populate_user_monsters(df)
