@@ -4,7 +4,6 @@ import logging
 import requests
 import pandas as pd
 import psycopg2
-import streamlit as st
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -14,11 +13,18 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from urllib.parse import urljoin
 
+# ========== Config ==========
 BASE_URL = "https://www.dofus-touch.com/fr/mmorpg/encyclopedie/monstres?text=&monster_level_min=1&monster_level_max=1200&monster_type[0]=archimonster"
+DB_NAME = "dofus_user"
+DB_USER = "dofus_user"
+DB_PASS = "dofus_pass"
+DB_HOST = "db"
+DB_PORT = "5432"
 PAGES_TO_SCRAPE = 12
-DOWNLOAD_DIR = "download/Images"
-EXPORT_DIR = "download"
+DOWNLOAD_DIR = "/app/download/Images"
+EXPORT_DIR = "/app/download"
 
+# ========== Logging ==========
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def setup_driver():
@@ -106,13 +112,11 @@ def extract_monsters(soup):
     return monsters
 
 def save_to_postgres(df):
-    DB_URI = st.secrets["db"]["uri"] if "db" in st.secrets and "uri" in st.secrets["db"] else os.getenv("DATABASE_URL", "")
-    if not DB_URI:
-        logging.error("❌ Database URI not found in secrets or environment variables.")
-        return
-
     try:
-        with psycopg2.connect(DB_URI) as conn:
+        with psycopg2.connect(
+            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
+            host=DB_HOST, port=DB_PORT
+        ) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS archimonsters (
@@ -135,18 +139,28 @@ def save_to_postgres(df):
     except Exception as e:
         logging.error(f"❌ PostgreSQL error: {e}")
 
+def run_scraper(pages=PAGES_TO_SCRAPE):
+    driver = setup_driver()
+    all_monsters = []
+    try:
+        for i in range(1, pages + 1):
+            logging.info(f"🔍 Scraping page {i}...")
+            soup = get_page_html(driver, i)
+            all_monsters.extend(extract_monsters(soup))
+    finally:
+        driver.quit()
+    return pd.DataFrame(all_monsters)
+
 def populate_user_monsters(df):
     import random
-    DB_URI = st.secrets["db"]["uri"] if "db" in st.secrets and "uri" in st.secrets["db"] else os.getenv("DATABASE_URL", "")
-    if not DB_URI:
-        logging.error("❌ Database URI not found in secrets or environment variables.")
-        return
-
     users = ['user_1', 'user_2']
     sample_names = df["name"].tolist()
 
     try:
-        with psycopg2.connect(DB_URI) as conn:
+        with psycopg2.connect(
+            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
+            host=DB_HOST, port=DB_PORT
+        ) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS user_monsters (
@@ -172,22 +186,9 @@ def populate_user_monsters(df):
     except Exception as e:
         logging.error(f"❌ Error inserting ownership data: {e}")
 
-def run_scraper():
-    driver = setup_driver()
-    all_monsters = []
-    try:
-        for i in range(1, PAGES_TO_SCRAPE + 1):
-            logging.info(f"🔍 Scraping page {i}...")
-            soup = get_page_html(driver, i)
-            all_monsters.extend(extract_monsters(soup))
-    finally:
-        driver.quit()
-    return pd.DataFrame(all_monsters)
-
 if __name__ == "__main__":
     df = run_scraper()
     if not df.empty:
-        os.makedirs(EXPORT_DIR, exist_ok=True)
         df.to_csv(os.path.join(EXPORT_DIR, "archimonsters.csv"), index=False)
         df.to_json(os.path.join(EXPORT_DIR, "archimonsters.json"), orient="records", indent=2)
         save_to_postgres(df)

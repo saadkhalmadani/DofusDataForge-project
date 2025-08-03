@@ -13,7 +13,7 @@ ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 WORKDIR /app
 
 # Copy scripts
-COPY ./scripts/dofus-scraping.py ./scripts/dofus-scraping.py
+COPY ./scripts/dofus_scraping.py ./scripts/dofus_scraping.py
 
 # Install Python deps
 COPY requirements-scraper.txt .
@@ -23,4 +23,4 @@ RUN pip install --no-cache-dir -r requirements-scraper.txt
 RUN mkdir -p /app/download/Images
 
 # Run script
-CMD ["python", "./scripts/dofus-scraping.py"]
+CMD ["python", "./scripts/dofus_scraping.py"]
