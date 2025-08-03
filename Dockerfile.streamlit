@@ -9,6 +9,7 @@ WORKDIR /app
 
 # Copy script
 COPY ./scripts/app.py ./scripts/app.py
+COPY download/archimonsters.csv .
 
 # Install Python deps
 COPY requirements-streamlit.txt .
