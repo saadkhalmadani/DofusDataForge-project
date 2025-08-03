@@ -5,14 +5,15 @@ import psycopg2
 
 # ====== Config ======
 MONSTERS_PER_PAGE = 12
-DB_NAME = "dofus_user"
-DB_USER = "dofus_user"
-DB_PASS = "dofus_pass"
-DB_HOST = "db"
-DB_PORT = "5432"
 CSV_PATH = "download/archimonsters.csv"
 IMAGE_FOLDER = "download/Images"
 EXPORT_DIR = "download"
+DB_NAME = st.secrets["postgres"]["database"]
+DB_USER = st.secrets["postgres"]["user"]
+DB_PASS = st.secrets["postgres"]["password"]
+DB_HOST = st.secrets["postgres"]["host"]
+DB_PORT = st.secrets["postgres"]["port"]
+
 os.makedirs(IMAGE_FOLDER, exist_ok=True)
 
 # ====== Streamlit Config ======

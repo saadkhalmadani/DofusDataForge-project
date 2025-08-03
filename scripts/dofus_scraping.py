@@ -1,10 +1,10 @@
 import os
 import re
 import logging
-import random
 import requests
-import pandas as pd
 import psycopg2
+import streamlit as st
+import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -16,18 +16,14 @@ from urllib.parse import urljoin
 
 # ========== Config ==========
 BASE_URL = "https://www.dofus-touch.com/fr/mmorpg/encyclopedie/monstres?text=&monster_level_min=1&monster_level_max=1200&monster_type[0]=archimonster"
-DB_NAME = "dofus_user"
-DB_USER = "dofus_user"
-DB_PASS = "dofus_pass"
-DB_HOST = "db"
-DB_PORT = "5432"
 PAGES_TO_SCRAPE = 12
-DOWNLOAD_DIR = "/app/download/Images"
-EXPORT_DIR = "/app/download"
-CSV_PATH = "download/archimonsters.csv"
-IMAGE_FOLDER = "download/Images"
+DOWNLOAD_DIR = "download/Images"
 EXPORT_DIR = "download"
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+DB_NAME = st.secrets["postgres"]["database"]
+DB_USER = st.secrets["postgres"]["user"]
+DB_PASS = st.secrets["postgres"]["password"]
+DB_HOST = st.secrets["postgres"]["host"]
+DB_PORT = st.secrets["postgres"]["port"]
 
 # ========== Logging ==========
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -37,6 +33,10 @@ def setup_driver():
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36")
     return webdriver.Chrome(options=options)
 
 def sanitize_filename(name):
@@ -46,10 +46,11 @@ def get_extension_from_url(url):
     basename = url.split("/")[-1].split("?")[0]
     return os.path.splitext(basename)[1] or ".png"
 
-def download_image(url, monster_name):
+def download_image(url, monster_name, base_dir=DOWNLOAD_DIR):
+    os.makedirs(base_dir, exist_ok=True)
     safe_name = sanitize_filename(monster_name)
     ext = get_extension_from_url(url)
-    filepath = os.path.join(DOWNLOAD_DIR, f"{safe_name}{ext}")
+    filepath = os.path.join(base_dir, f"{safe_name}{ext}")
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -89,6 +90,9 @@ def extract_monsters(soup):
             continue
 
         name = cells[name_idx].get_text(strip=True)
+        if not name:
+            continue
+
         level = cells[level_idx].get_text(strip=True) if level_idx is not None else ""
         img_tag = cells[0].find("img")
         raw_img_url = img_tag["src"] if img_tag and "src" in img_tag.attrs else ""
@@ -110,10 +114,7 @@ def extract_monsters(soup):
 
 def save_to_postgres(df):
     try:
-        with psycopg2.connect(
-            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
-            host=DB_HOST, port=DB_PORT
-        ) as conn:
+        with psycopg2.connect(st.secrets["db"]["uri"]) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS archimonsters (
@@ -137,14 +138,12 @@ def save_to_postgres(df):
         logging.error(f"❌ PostgreSQL error: {e}")
 
 def populate_user_monsters(df):
+    import random
     users = ['user_1', 'user_2']
     sample_names = df["name"].tolist()
 
     try:
-        with psycopg2.connect(
-            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
-            host=DB_HOST, port=DB_PORT
-        ) as conn:
+        with psycopg2.connect(st.secrets["db"]["uri"]) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS user_monsters (
@@ -166,23 +165,25 @@ def populate_user_monsters(df):
                             SET quantity = EXCLUDED.quantity;
                         """, (user, name, qty))
                 conn.commit()
-        logging.info("🧪 Sample user data inserted.")
+        logging.info("🧪 Test data with quantities inserted.")
     except Exception as e:
         logging.error(f"❌ Error inserting ownership data: {e}")
 
-def run_scraper(pages=PAGES_TO_SCRAPE):
+
+def run_scraper():
     driver = setup_driver()
     all_monsters = []
     try:
-        for i in range(1, pages + 1):
-            logging.info(f"🔍 Scraping page {i}...")
-            soup = get_page_html(driver, i)
-            all_monsters.extend(extract_monsters(soup))
+        for page in range(1, PAGES_TO_SCRAPE + 1):
+            logging.info(f"🔎 Scraping page {page}/{PAGES_TO_SCRAPE}")
+            soup = get_page_html(driver, page)
+            monsters = extract_monsters(soup)
+            all_monsters.extend(monsters)
     finally:
         driver.quit()
     return pd.DataFrame(all_monsters)
 
-def full_scrape_and_save():
+if __name__ == "__main__":
     df = run_scraper()
     if not df.empty:
         os.makedirs(EXPORT_DIR, exist_ok=True)
