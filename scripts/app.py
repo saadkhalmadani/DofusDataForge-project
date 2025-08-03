@@ -19,13 +19,19 @@ if not os.path.exists(CSV_PATH):
     st.stop()
 
 df = pd.read_csv(CSV_PATH)
-df["level_num"] = df["level"].astype(str).str.extract(r'(\d+)')[0].fillna(0).astype(int)
 
-# ====== Streamlit UI Config ======
+# ====== Extract numeric level for filtering ======
+df["level_num"] = (
+    df["level"].astype(str).str.extract(r'(\d+)')[0]
+    .fillna(0).astype(int)
+)
+
+# ====== Streamlit Config ======
 st.set_page_config(page_title="Dofus Archimonsters Viewer", layout="wide")
 st.title("🧟‍♂️ Dofus Archimonsters Viewer")
 st.caption("Browse monsters scraped from Dofus Touch")
 
+# ====== Load ownership data ======
 @st.cache_data(ttl=300)
 def get_all_users():
     try:
@@ -58,13 +64,14 @@ def load_owned_monsters(user_id):
         st.error(f"❌ Error loading ownership: {e}")
         return {}
 
-# ====== Sidebar Filters ======
+# ====== Sidebar: Filters ======
 users = get_all_users()
 selected_user = st.sidebar.selectbox("👤 Select User", users if users else ["anonymous"])
 ownership_filter = st.sidebar.radio("🎯 Filter by Ownership", ["All", "Owned", "Not Owned"])
 search_term = st.sidebar.text_input("🔍 Search monster by name").strip()
 level_range = st.sidebar.slider("🧪 Level Range", 0, 200, (0, 200))
 
+# ====== Apply filters ======
 owned_dict = load_owned_monsters(selected_user)
 owned_names = set(owned_dict.keys())
 
@@ -96,7 +103,7 @@ for idx, row in paginated_df.iterrows():
         st.subheader(row["name"])
         img_path = row["local_image"]
         if isinstance(img_path, str) and os.path.exists(img_path):
-            st.image(img_path)
+            st.image(img_path)  # default size
         else:
             st.warning("⚠️ Image not found")
         if row["name"] in owned_dict:
@@ -105,6 +112,8 @@ for idx, row in paginated_df.iterrows():
             st.caption(f"🎚️ {row['level']} | ❌ Not Owned")
 
 # ====== Summary ======
+total_owned = len(owned_names)
+total_available = len(df)
 st.markdown("---")
 st.success(f"✅ Showing {len(paginated_df)} of {len(filtered_df)} matching monsters.")
-st.info(f"📊 {selected_user} owns {len(owned_names)} out of {len(df)} monsters.")
+st.info(f"📊 {selected_user} owns {total_owned} out of {total_available} monsters.")
