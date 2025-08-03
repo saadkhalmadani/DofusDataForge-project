@@ -4,16 +4,17 @@ import streamlit as st
 import psycopg2
 
 # ====== Config ======
-CSV_PATH = "/app/download/archimonsters.csv"
+CSV_PATH = "download/archimonsters.csv"  # relative path
 IMAGE_FOLDER = "download/Images"
 MONSTERS_PER_PAGE = 12
+
 DB_NAME = "dofus_user"
 DB_USER = "dofus_user"
 DB_PASS = "dofus_pass"
 DB_HOST = "db"
 DB_PORT = "5432"
 
-# ====== Load CSV ======
+# ====== Check CSV file ======
 if not os.path.exists(CSV_PATH):
     st.error(f"❌ File not found: {CSV_PATH}")
     st.stop()
@@ -64,7 +65,7 @@ def load_owned_monsters(user_id):
         st.error(f"❌ Error loading ownership: {e}")
         return {}
 
-# ====== Sidebar: Filters ======
+# ====== Sidebar Filters ======
 users = get_all_users()
 selected_user = st.sidebar.selectbox("👤 Select User", users if users else ["anonymous"])
 ownership_filter = st.sidebar.radio("🎯 Filter by Ownership", ["All", "Owned", "Not Owned"])
@@ -103,7 +104,7 @@ for idx, row in paginated_df.iterrows():
         st.subheader(row["name"])
         img_path = row["local_image"]
         if isinstance(img_path, str) and os.path.exists(img_path):
-            st.image(img_path)  # default size
+            st.image(img_path)
         else:
             st.warning("⚠️ Image not found")
         if row["name"] in owned_dict:

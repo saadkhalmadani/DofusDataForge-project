@@ -21,8 +21,10 @@ DB_PASS = "dofus_pass"
 DB_HOST = "db"
 DB_PORT = "5432"
 PAGES_TO_SCRAPE = 12
-DOWNLOAD_DIR = "/app/download/Images"
-EXPORT_DIR = "/app/download"
+
+DOWNLOAD_DIR = "download/Images"
+EXPORT_DIR = "download"
+CSV_PATH = os.path.join(EXPORT_DIR, "archimonsters.csv")
 
 # ========== Logging ==========
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -187,9 +189,10 @@ def populate_user_monsters(df):
         logging.error(f"❌ Error inserting ownership data: {e}")
 
 if __name__ == "__main__":
+    os.makedirs(EXPORT_DIR, exist_ok=True)  # Ensure export folder exists
     df = run_scraper()
     if not df.empty:
-        df.to_csv(os.path.join(EXPORT_DIR, "archimonsters.csv"), index=False)
+        df.to_csv(CSV_PATH, index=False)
         df.to_json(os.path.join(EXPORT_DIR, "archimonsters.json"), orient="records", indent=2)
         save_to_postgres(df)
         populate_user_monsters(df)
