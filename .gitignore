@@ -9,3 +9,13 @@ wheels/
 # Virtual environments
 .venv
 .streamlit/secrets.toml
+.env
+
+requirements-scraper.txt
+requirements-streamlit.txt
+
+# git rm --cached file_name
+# git rm --cached -r directory_name
+
+# Then commit the change:
+# git commit -m "Removed file from git tracking"
