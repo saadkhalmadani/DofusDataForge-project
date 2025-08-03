@@ -18,7 +18,7 @@ BASE_URL = "https://www.dofus-touch.com/fr/mmorpg/encyclopedie/monstres?text=&mo
 DB_NAME = "dofus_user"
 DB_USER = "dofus_user"
 DB_PASS = "dofus_pass"
-DB_HOST = "localhost"  
+DB_HOST = "db"
 DB_PORT = "5432"
 PAGES_TO_SCRAPE = 12
 DOWNLOAD_DIR = "download/Images"
