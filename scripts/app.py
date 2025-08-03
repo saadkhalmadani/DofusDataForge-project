@@ -10,7 +10,7 @@ MONSTERS_PER_PAGE = 12
 DB_NAME = "dofus_user"
 DB_USER = "dofus_user"
 DB_PASS = "dofus_pass"
-DB_HOST = "db"
+DB_HOST = "localhost"  
 DB_PORT = "5432"
 
 # ====== Load CSV ======
