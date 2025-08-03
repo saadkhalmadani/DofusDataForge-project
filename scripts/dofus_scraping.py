@@ -21,8 +21,8 @@ DB_PASS = "dofus_pass"
 DB_HOST = "db"
 DB_PORT = "5432"
 PAGES_TO_SCRAPE = 12
-DOWNLOAD_DIR = "/app/download/Images"
-EXPORT_DIR = "/app/download"
+DOWNLOAD_DIR = "download/Images"
+EXPORT_DIR = "download"
 
 # ========== Logging ==========
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

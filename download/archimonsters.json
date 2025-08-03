@@ -288,6 +288,150 @@
     "local_image":"\/app\/download\/Images\/Chalan_le_Commer\u00e7ant.png"
   },
   {
+    "name":"Chamchie le Difficile",
+    "level":"Niv. 24 - 32",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2323.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Chamchie_le_Difficile.png"
+  },
+  {
+    "name":"Chamdbl\u00e9 le Cultiv\u00e9",
+    "level":"Niv. 29 - 37",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2426.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Chamdbl\u00e9_le_Cultiv\u00e9.png"
+  },
+  {
+    "name":"Chamflay le Ballonn\u00e9",
+    "level":"Niv. 30 - 38",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2425.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Chamflay_le_Ballonn\u00e9.png"
+  },
+  {
+    "name":"Chamilero le Malchanceux",
+    "level":"Niv. 167 - 175",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2553.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Chamilero_le_Malchanceux.png"
+  },
+  {
+    "name":"Chamitant le Dillettante",
+    "level":"Niv. 50 - 58",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2423.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Chamitant_le_Dillettante.png"
+  },
+  {
+    "name":"Chamoute le Duveteux",
+    "level":"Niv. 173 - 181",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2552.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Chamoute_le_Duveteux.png"
+  },
+  {
+    "name":"Champayr le Disjonct\u00e9",
+    "level":"Niv. 32 - 40",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2427.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Champayr_le_Disjonct\u00e9.png"
+  },
+  {
+    "name":"Champayt l'Odorant",
+    "level":"Niv. 20 - 28",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2424.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Champayt_l'Odorant.png"
+  },
+  {
+    "name":"Champm\u00e9 le M\u00e9chant",
+    "level":"Niv. 182 - 190",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2600.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Champm\u00e9_le_M\u00e9chant.png"
+  },
+  {
+    "name":"Champolyon le Polyglotte",
+    "level":"Niv. 179 - 187",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2551.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Champolyon_le_Polyglotte.png"
+  },
+  {
+    "name":"Champoul l'Illumin\u00e9",
+    "level":"Niv. 176 - 184",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2373.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Champoul_l'Illumin\u00e9.png"
+  },
+  {
+    "name":"Chevaustine le Reconstruit",
+    "level":"Niv. 27 - 35",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2430.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Chevaustine_le_Reconstruit.png"
+  },
+  {
+    "name":"Chiendanl\u00e9min l'Illusionniste",
+    "level":"Niv. 104 - 116",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2554.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Chiendanl\u00e9min_l'Illusionniste.png"
+  },
+  {
+    "name":"Chonstip la Passag\u00e8re",
+    "level":"Niv. 58 - 62",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2325.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Chonstip_la_Passag\u00e8re.png"
+  },
+  {
+    "name":"Codenlgaz le Probl\u00e8me",
+    "level":"Niv. 35 - 47",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2433.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Codenlgaz_le_Probl\u00e8me.png"
+  },
+  {
+    "name":"Corboyard l'Enigmatique",
+    "level":"Niv. 48 - 60",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2555.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Corboyard_l'Enigmatique.png"
+  },
+  {
+    "name":"Corpat le Vampire",
+    "level":"Niv. 24 - 36",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2437.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Corpat_le_Vampire.png"
+  },
+  {
+    "name":"Crakmitaine le Faucheur",
+    "level":"Niv. 55 - 67",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2436.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Crakmitaine_le_Faucheur.png"
+  },
+  {
+    "name":"Cramikaz le Suicidaire",
+    "level":"Niv. 59 - 71",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2438.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Cramikaz_le_Suicidaire.png"
+  },
+  {
+    "name":"Craquetou le Fissur\u00e9",
+    "level":"Niv. 40 - 52",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2556.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Craquetou_le_Fissur\u00e9.png"
+  },
+  {
+    "name":"Craquetuss le Piquant",
+    "level":"Niv. 50 - 58",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2326.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Craquetuss_le_Piquant.png"
+  },
+  {
+    "name":"Craraboss le F\u00e9\u00e9rique",
+    "level":"Niv. 12 - 16",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2327.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Craraboss_le_F\u00e9\u00e9rique.png"
+  },
+  {
+    "name":"Crathdogue le Cruel",
+    "level":"Niv. 50 - 90",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2561.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Crathdogue_le_Cruel.png"
+  },
+  {
+    "name":"Crognan le Barbare",
+    "level":"Niv. 35",
+    "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2440.w52h52.png",
+    "local_image":"\/app\/download\/Images\/Crognan_le_Barbare.png"
+  },
+  {
     "name":"Crok le Beau",
     "level":"Niv. 61 - 77",
     "url_image":"https:\/\/static.ankama.com\/dofus-touch\/www\/img\/..\/..\/..\/dofus-touch\/www\/game\/monsters\/200\/2428.w52h52.png",

@@ -4,7 +4,7 @@ import streamlit as st
 import psycopg2
 
 # ====== Config ======
-CSV_PATH = "/app/download/archimonsters.csv"
+CSV_PATH = "download/archimonsters.csv"
 IMAGE_FOLDER = "download/Images"
 MONSTERS_PER_PAGE = 12
 DB_NAME = "dofus_user"
