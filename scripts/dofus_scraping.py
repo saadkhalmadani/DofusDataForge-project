@@ -106,8 +106,13 @@ def extract_monsters(soup):
     return monsters
 
 def save_to_postgres(df):
+    DB_URI = st.secrets["db"]["uri"] if "db" in st.secrets and "uri" in st.secrets["db"] else os.getenv("DATABASE_URL", "")
+    if not DB_URI:
+        logging.error("❌ Database URI not found in secrets or environment variables.")
+        return
+
     try:
-        with psycopg2.connect(st.secrets["db"]["uri"]) as conn:
+        with psycopg2.connect(DB_URI) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS archimonsters (
@@ -132,11 +137,16 @@ def save_to_postgres(df):
 
 def populate_user_monsters(df):
     import random
+    DB_URI = st.secrets["db"]["uri"] if "db" in st.secrets and "uri" in st.secrets["db"] else os.getenv("DATABASE_URL", "")
+    if not DB_URI:
+        logging.error("❌ Database URI not found in secrets or environment variables.")
+        return
+
     users = ['user_1', 'user_2']
     sample_names = df["name"].tolist()
 
     try:
-        with psycopg2.connect(st.secrets["db"]["uri"]) as conn:
+        with psycopg2.connect(DB_URI) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS user_monsters (
