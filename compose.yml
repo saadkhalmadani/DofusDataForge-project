@@ -36,10 +36,7 @@ services:
     ports:
       - "8501:8501"
     depends_on:
-      db:
-        condition: service_healthy
-      scraper:
-        condition: service_healthy
+      - scraper
     volumes:
       - .:/app
       - ./download:/app/download
