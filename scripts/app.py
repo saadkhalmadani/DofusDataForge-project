@@ -4,15 +4,15 @@ import streamlit as st
 import psycopg2
 
 # ====== Config ======
-CSV_PATH = "/app/download/archimonsters.csv"
-IMAGE_FOLDER = "/app/download/Images"
 MONSTERS_PER_PAGE = 12
 DB_NAME = "dofus_user"
 DB_USER = "dofus_user"
 DB_PASS = "dofus_pass"
 DB_HOST = "db"
 DB_PORT = "5432"
-
+CSV_PATH = "download/archimonsters.csv"
+IMAGE_FOLDER = "download/Images"
+EXPORT_DIR = "download"
 os.makedirs(IMAGE_FOLDER, exist_ok=True)
 
 # ====== Streamlit Config ======

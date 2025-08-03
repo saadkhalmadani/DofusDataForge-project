@@ -24,7 +24,9 @@ DB_PORT = "5432"
 PAGES_TO_SCRAPE = 12
 DOWNLOAD_DIR = "/app/download/Images"
 EXPORT_DIR = "/app/download"
-
+CSV_PATH = "download/archimonsters.csv"
+IMAGE_FOLDER = "download/Images"
+EXPORT_DIR = "download"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 # ========== Logging ==========
