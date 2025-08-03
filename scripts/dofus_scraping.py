@@ -1,37 +1,54 @@
 import os
 import re
 import logging
+import random
 import requests
 import pandas as pd
 import psycopg2
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
-from urllib.parse import urljoin
 from dotenv import load_dotenv
 
-# Load env vars from .env
+# ====== Load environment variables ======
 load_dotenv()
 
-# ========== Config ==========
+# ====== Config ======
 BASE_URL = "https://www.dofus-touch.com/fr/mmorpg/encyclopedie/monstres?text=&monster_level_min=1&monster_level_max=1200&monster_type[0]=archimonster"
-DB_NAME = os.getenv("POSTGRES_DB", "dofus_user")
-DB_USER = os.getenv("POSTGRES_USER", "dofus_user")
-DB_PASS = os.getenv("POSTGRES_PASSWORD", "dofus_pass")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("POSTGRES_PORT", "5432")
-
-PAGES_TO_SCRAPE = 12
 DOWNLOAD_DIR = "download/Images"
 EXPORT_DIR = "download"
+PAGES_TO_SCRAPE = 12
 
-# ========== Logging ==========
+# ====== Logging ======
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
+# ====== DB Connection Helper ======
+def get_db_connection():
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        parsed = urlparse(database_url)
+        return psycopg2.connect(
+            dbname=parsed.path.lstrip("/"),
+            user=parsed.username,
+            password=parsed.password,
+            host=parsed.hostname,
+            port=parsed.port or 5432
+        )
+    else:
+        return psycopg2.connect(
+            dbname=os.getenv("POSTGRES_DB", "dofus_user"),
+            user=os.getenv("POSTGRES_USER", "dofus_user"),
+            password=os.getenv("POSTGRES_PASSWORD", "dofus_pass"),
+            host=os.getenv("DB_HOST", "localhost"),
+            port=os.getenv("POSTGRES_PORT", "5432")
+        )
+
+# ====== Web Scraper Setup ======
 def setup_driver():
     options = Options()
     options.add_argument("--headless")
@@ -40,7 +57,7 @@ def setup_driver():
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36")
+    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
     return webdriver.Chrome(options=options)
 
 def sanitize_filename(name):
@@ -118,10 +135,7 @@ def extract_monsters(soup):
 
 def save_to_postgres(df):
     try:
-        with psycopg2.connect(
-            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
-            host=DB_HOST, port=DB_PORT
-        ) as conn:
+        with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS archimonsters (
@@ -144,28 +158,12 @@ def save_to_postgres(df):
     except Exception as e:
         logging.error(f"❌ PostgreSQL error: {e}")
 
-def run_scraper(pages=PAGES_TO_SCRAPE):
-    driver = setup_driver()
-    all_monsters = []
-    try:
-        for i in range(1, pages + 1):
-            logging.info(f"🔍 Scraping page {i}...")
-            soup = get_page_html(driver, i)
-            all_monsters.extend(extract_monsters(soup))
-    finally:
-        driver.quit()
-    return pd.DataFrame(all_monsters)
-
 def populate_user_monsters(df):
-    import random
     users = ['user_1', 'user_2']
     sample_names = df["name"].tolist()
 
     try:
-        with psycopg2.connect(
-            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
-            host=DB_HOST, port=DB_PORT
-        ) as conn:
+        with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS user_monsters (
@@ -190,6 +188,18 @@ def populate_user_monsters(df):
         logging.info("🧪 Test data with quantities inserted.")
     except Exception as e:
         logging.error(f"❌ Error inserting ownership data: {e}")
+
+def run_scraper(pages=PAGES_TO_SCRAPE):
+    driver = setup_driver()
+    all_monsters = []
+    try:
+        for i in range(1, pages + 1):
+            logging.info(f"🔍 Scraping page {i}...")
+            soup = get_page_html(driver, i)
+            all_monsters.extend(extract_monsters(soup))
+    finally:
+        driver.quit()
+    return pd.DataFrame(all_monsters)
 
 if __name__ == "__main__":
     df = run_scraper()

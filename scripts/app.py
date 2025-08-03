@@ -3,22 +3,37 @@ import pandas as pd
 import streamlit as st
 import psycopg2
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
-# Load environment variables from .env file if present
+# Load environment variables from .env file
 load_dotenv()
 
-# ====== Config ======
+# ====== Constants ======
 CSV_PATH = "download/archimonsters.csv"
 IMAGE_FOLDER = "download/Images"
 MONSTERS_PER_PAGE = 12
 
-DB_NAME = os.getenv("POSTGRES_DB", "dofus_user")
-DB_USER = os.getenv("POSTGRES_USER", "dofus_user")
-DB_PASS = os.getenv("POSTGRES_PASSWORD", "dofus_pass")
-
-# Use DB_HOST env var if set, else default to localhost for local dev
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+# ====== Database Connection Helper ======
+def get_db_connection():
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        # Example: postgresql://user:pass@host:port/dbname
+        parsed = urlparse(database_url)
+        return psycopg2.connect(
+            dbname=parsed.path.lstrip("/"),
+            user=parsed.username,
+            password=parsed.password,
+            host=parsed.hostname,
+            port=parsed.port or 5432
+        )
+    else:
+        return psycopg2.connect(
+            dbname=os.getenv("POSTGRES_DB", "dofus_user"),
+            user=os.getenv("POSTGRES_USER", "dofus_user"),
+            password=os.getenv("POSTGRES_PASSWORD", "dofus_pass"),
+            host=os.getenv("DB_HOST", "localhost"),
+            port=os.getenv("POSTGRES_PORT", "5432")
+        )
 
 # ====== Load CSV ======
 if not os.path.exists(CSV_PATH):
@@ -42,10 +57,7 @@ st.caption("Browse monsters scraped from Dofus Touch")
 @st.cache_data(ttl=300)
 def get_all_users():
     try:
-        with psycopg2.connect(
-            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
-            host=DB_HOST, port=DB_PORT
-        ) as conn:
+        with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT DISTINCT user_id FROM user_monsters ORDER BY user_id;")
                 return [row[0] for row in cur.fetchall()]
@@ -56,10 +68,7 @@ def get_all_users():
 @st.cache_data(ttl=300)
 def load_owned_monsters(user_id):
     try:
-        with psycopg2.connect(
-            dbname=DB_NAME, user=DB_USER, password=DB_PASS,
-            host=DB_HOST, port=DB_PORT
-        ) as conn:
+        with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT monster_name, quantity FROM user_monsters
