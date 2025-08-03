@@ -8,28 +8,19 @@ CSV_PATH = "download/archimonsters.csv"
 IMAGE_FOLDER = "download/Images"
 MONSTERS_PER_PAGE = 12
 
-# Ensure image folder exists
 os.makedirs(IMAGE_FOLDER, exist_ok=True)
 
-# Load CSV
 if not os.path.exists(CSV_PATH):
     st.error(f"❌ File not found: {CSV_PATH}")
     st.stop()
 
 df = pd.read_csv(CSV_PATH)
+df["level_num"] = df["level"].astype(str).str.extract(r'(\d+)')[0].fillna(0).astype(int)
 
-# Extract numeric level for filtering
-df["level_num"] = (
-    df["level"].astype(str).str.extract(r'(\d+)')[0]
-    .fillna(0).astype(int)
-)
-
-# Streamlit Config
 st.set_page_config(page_title="Dofus Archimonsters Viewer", layout="wide")
 st.title("🧟‍♂️ Dofus Archimonsters Viewer")
 st.caption("Browse monsters scraped from Dofus Touch")
 
-# Load ownership data
 @st.cache_data(ttl=300)
 def get_all_users():
     try:
@@ -56,14 +47,12 @@ def load_owned_monsters(user_id):
         st.error(f"❌ Error loading ownership: {e}")
         return {}
 
-# Sidebar filters
 users = get_all_users()
 selected_user = st.sidebar.selectbox("👤 Select User", users if users else ["anonymous"])
 ownership_filter = st.sidebar.radio("🎯 Filter by Ownership", ["All", "Owned", "Not Owned"])
 search_term = st.sidebar.text_input("🔍 Search monster by name").strip()
 level_range = st.sidebar.slider("🧪 Level Range", 0, 200, (0, 200))
 
-# Apply filters
 owned_dict = load_owned_monsters(selected_user)
 owned_names = set(owned_dict.keys())
 
@@ -79,7 +68,6 @@ elif ownership_filter == "Not Owned":
 
 filtered_df.reset_index(drop=True, inplace=True)
 
-# Pagination
 total_pages = (len(filtered_df) - 1) // MONSTERS_PER_PAGE + 1
 page_number = st.number_input("📄 Page", min_value=1, max_value=max(total_pages, 1), step=1)
 
@@ -87,7 +75,6 @@ start = (page_number - 1) * MONSTERS_PER_PAGE
 end = start + MONSTERS_PER_PAGE
 paginated_df = filtered_df.iloc[start:end]
 
-# Display monsters
 cols = st.columns(3)
 for idx, row in paginated_df.iterrows():
     col = cols[idx % 3]
@@ -103,9 +90,6 @@ for idx, row in paginated_df.iterrows():
         else:
             st.caption(f"🎚️ {row['level']} | ❌ Not Owned")
 
-# Summary
-total_owned = len(owned_names)
-total_available = len(df)
 st.markdown("---")
 st.success(f"✅ Showing {len(paginated_df)} of {len(filtered_df)} matching monsters.")
-st.info(f"📊 {selected_user} owns {total_owned} out of {total_available} monsters.")
+st.info(f"📊 {selected_user} owns {len(owned_names)} out of {len(df)} monsters.")

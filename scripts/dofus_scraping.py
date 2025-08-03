@@ -14,7 +14,6 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from urllib.parse import urljoin
 
-# Config
 BASE_URL = "https://www.dofus-touch.com/fr/mmorpg/encyclopedie/monstres?text=&monster_level_min=1&monster_level_max=1200&monster_type[0]=archimonster"
 PAGES_TO_SCRAPE = 12
 DOWNLOAD_DIR = "download/Images"
