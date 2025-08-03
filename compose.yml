@@ -35,6 +35,12 @@ services:
       context: .
       dockerfile: Dockerfile.streamlit
     container_name: dofus_streamlit
+    environment:
+      DB_HOST: db
+      DB_USER: ${POSTGRES_USER}
+      DB_PASS: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_PORT: ${POSTGRES_PORT}
     ports:
       - "8501:8501"
     depends_on:

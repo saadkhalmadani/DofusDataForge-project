@@ -12,14 +12,19 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from urllib.parse import urljoin
+from dotenv import load_dotenv
+
+# Load env vars from .env
+load_dotenv()
 
 # ========== Config ==========
 BASE_URL = "https://www.dofus-touch.com/fr/mmorpg/encyclopedie/monstres?text=&monster_level_min=1&monster_level_max=1200&monster_type[0]=archimonster"
-DB_NAME = "dofus_user"
-DB_USER = "dofus_user"
-DB_PASS = "dofus_pass"
-DB_HOST = "db"
-DB_PORT = "5432"
+DB_NAME = os.getenv("POSTGRES_DB", "dofus_user")
+DB_USER = os.getenv("POSTGRES_USER", "dofus_user")
+DB_PASS = os.getenv("POSTGRES_PASSWORD", "dofus_pass")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+
 PAGES_TO_SCRAPE = 12
 DOWNLOAD_DIR = "download/Images"
 EXPORT_DIR = "download"
@@ -189,6 +194,7 @@ def populate_user_monsters(df):
 if __name__ == "__main__":
     df = run_scraper()
     if not df.empty:
+        os.makedirs(EXPORT_DIR, exist_ok=True)
         df.to_csv(os.path.join(EXPORT_DIR, "archimonsters.csv"), index=False)
         df.to_json(os.path.join(EXPORT_DIR, "archimonsters.json"), orient="records", indent=2)
         save_to_postgres(df)

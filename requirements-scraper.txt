@@ -3,3 +3,4 @@ beautifulsoup4
 pandas
 psycopg2-binary
 requests
+dotenv

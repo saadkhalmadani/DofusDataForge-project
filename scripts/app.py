@@ -2,16 +2,23 @@ import os
 import pandas as pd
 import streamlit as st
 import psycopg2
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if present
+load_dotenv()
 
 # ====== Config ======
 CSV_PATH = "download/archimonsters.csv"
 IMAGE_FOLDER = "download/Images"
 MONSTERS_PER_PAGE = 12
-DB_NAME = "dofus_user"
-DB_USER = "dofus_user"
-DB_PASS = "dofus_pass"
-DB_HOST = "db"
-DB_PORT = "5432"
+
+DB_NAME = os.getenv("POSTGRES_DB", "dofus_user")
+DB_USER = os.getenv("POSTGRES_USER", "dofus_user")
+DB_PASS = os.getenv("POSTGRES_PASSWORD", "dofus_pass")
+
+# Use DB_HOST env var if set, else default to localhost for local dev
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 
 # ====== Load CSV ======
 if not os.path.exists(CSV_PATH):
@@ -103,7 +110,7 @@ for idx, row in paginated_df.iterrows():
         st.subheader(row["name"])
         img_path = row["local_image"]
         if isinstance(img_path, str) and os.path.exists(img_path):
-            st.image(img_path)  # default size
+            st.image(img_path)
         else:
             st.warning("⚠️ Image not found")
         if row["name"] in owned_dict:
