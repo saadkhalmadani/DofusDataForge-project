@@ -33,39 +33,6 @@ def get_db_connection():
             port=os.getenv("POSTGRES_PORT", "5432")
         )
 
-# ====== Authentication ======
-if "user_id" not in st.session_state:
-    st.session_state.user_id = ""
-
-st.sidebar.markdown("## 🔐 Login")
-username = st.sidebar.text_input("Username", value=st.session_state.user_id)
-login_button = st.sidebar.button("🔓 Login")
-
-if login_button:
-    st.session_state.user_id = username.strip()
-    st.success(f"✅ Logged in as {st.session_state.user_id}")
-
-if not st.session_state.user_id:
-    st.warning("👤 Please log in to manage ownership.")
-    st.stop()
-
-current_user = st.session_state.user_id
-
-# ====== Load CSV ======
-if not os.path.exists(CSV_PATH):
-    st.error(f"❌ File not found: {CSV_PATH}")
-    st.stop()
-
-df = pd.read_csv(CSV_PATH)
-
-# ====== Extract numeric level for filtering ======
-df["level_num"] = df["level"].astype(str).str.extract(r'(\d+)')[0].fillna(0).astype(int)
-
-# ====== Streamlit Setup ======
-st.set_page_config(page_title="Dofus Archimonsters Viewer", layout="wide")
-st.title("🧟‍♂️ Dofus Archimonsters Viewer")
-st.caption(f"Logged in as: `{current_user}`")
-
 # ====== Ownership Loading/Updating ======
 @st.cache_data(ttl=300)
 def get_all_users():
@@ -104,6 +71,46 @@ def update_quantity(user_id, monster_name, change):
                 conn.commit()
     except Exception as e:
         st.error(f"❌ Update error: {e}")
+
+# ====== Streamlit Setup ======
+st.set_page_config(page_title="Dofus Archimonsters Viewer", layout="wide")
+st.title("🧟‍♂️ Dofus Archimonsters Viewer")
+
+# ====== Load CSV ======
+if not os.path.exists(CSV_PATH):
+    st.error(f"❌ File not found: {CSV_PATH}")
+    st.stop()
+
+df = pd.read_csv(CSV_PATH)
+
+# Extract numeric level for filtering
+df["level_num"] = df["level"].astype(str).str.extract(r'(\d+)')[0].fillna(0).astype(int)
+
+# ====== Authentication ======
+if "user_id" not in st.session_state:
+    st.session_state.user_id = ""
+
+all_users = get_all_users()
+
+st.sidebar.markdown("## 🔐 Login")
+username = st.sidebar.text_input("Username", value=st.session_state.user_id)
+login_button = st.sidebar.button("🔓 Login")
+
+if login_button:
+    username = username.strip()
+    if username in all_users:
+        st.session_state.user_id = username
+        st.success(f"✅ Logged in as {st.session_state.user_id}")
+    else:
+        st.warning("❌ User not found. Please enter a valid username.")
+        st.session_state.user_id = ""
+
+if not st.session_state.user_id:
+    st.warning("👤 Please log in to manage ownership.")
+    st.stop()
+
+current_user = st.session_state.user_id
+st.caption(f"Logged in as: `{current_user}`")
 
 # ====== Sidebar Filters ======
 ownership_filter = st.sidebar.radio("🎯 Filter by Ownership", ["All", "Owned", "Not Owned"])
@@ -151,13 +158,13 @@ for idx, row in paginated_df.iterrows():
 
         col1, col2 = st.columns([1, 1])
         with col1:
-            if st.button(f"➕ {row['name']}", key=f"inc_{idx}"):
+            if st.button("+", key=f"inc_{idx}"):
                 update_quantity(current_user, row["name"], 1)
-                st.rerun()
+                st.experimental_rerun()
         with col2:
-            if st.button(f"➖ {row['name']}", key=f"dec_{idx}"):
+            if st.button("-", key=f"dec_{idx}"):
                 update_quantity(current_user, row["name"], -1)
-                st.rerun()
+                st.experimental_rerun()
 
 # ====== Summary ======
 total_owned = len(owned_names)
