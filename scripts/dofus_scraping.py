@@ -23,6 +23,7 @@ load_dotenv()
 BASE_URL = "https://www.dofus-touch.com/fr/mmorpg/encyclopedie/monstres?text=&monster_level_min=1&monster_level_max=1200&monster_type[0]=archimonster"
 DOWNLOAD_DIR = "download/Images"
 EXPORT_DIR = "download"
+CSV_FILEPATH = os.path.join(EXPORT_DIR, "archimonsters.csv")
 PAGES_TO_SCRAPE = 12
 WAIT_TIMEOUT = 30
 
@@ -53,6 +54,81 @@ def get_db_connection():
             port=os.getenv("POSTGRES_PORT", "5432")
         )
 
+# ====== Initialize DB schema ======
+def initialize_schema():
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Users table
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        username TEXT UNIQUE NOT NULL,
+                        password TEXT NOT NULL
+                    );
+                """)
+
+                # Archimonsters table with unique name constraint
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS archimonsters (
+                        id SERIAL PRIMARY KEY,
+                        name TEXT NOT NULL UNIQUE,
+                        level TEXT,
+                        url_image TEXT,
+                        local_image TEXT
+                    );
+                """)
+
+                # User_monsters with FK to users(id) and archimonsters(name)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS user_monsters (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        monster_name TEXT NOT NULL REFERENCES archimonsters(name) ON DELETE CASCADE,
+                        quantity INTEGER DEFAULT 0,
+                        UNIQUE(user_id, monster_name)
+                    );
+                """)
+                conn.commit()
+        logging.info("✅ Database schema initialized successfully.")
+    except Exception as e:
+        logging.error(f"❌ Failed to initialize schema: {e}")
+
+# ====== Insert test users ======
+def insert_test_users():
+    try:
+        test_users = [
+            ("alice", "alicepass"),
+            ("bob", "bobpass"),
+            ("charlie", "charliepass")
+        ]
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                for username, password in test_users:
+                    cur.execute("""
+                        INSERT INTO users (username, password)
+                        VALUES (%s, %s)
+                        ON CONFLICT (username) DO NOTHING;
+                    """, (username, password))
+                conn.commit()
+        logging.info("🧪 Inserted test users")
+    except Exception as e:
+        logging.error(f"❌ Failed to insert test users: {e}")
+
+# ====== Check if already scraped ======
+def is_already_scraped():
+    if not os.path.exists(CSV_FILEPATH):
+        return False
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM archimonsters;")
+                count = cur.fetchone()[0]
+                return count > 0
+    except Exception as e:
+        logging.warning(f"⚠️ Could not check DB archimonsters count: {e}")
+        return False
+
 # ====== WebDriver Setup ======
 def setup_driver():
     options = Options()
@@ -65,7 +141,7 @@ def setup_driver():
     options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
     return webdriver.Chrome(options=options)
 
-# ====== Scraping Helpers ======
+# ====== Helpers ======
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name).replace(" ", "_").strip()
 
@@ -97,7 +173,7 @@ def get_page_html(driver, page_number):
         )
         return BeautifulSoup(driver.page_source, "html.parser")
     except TimeoutException:
-        screenshot_path = f"download/timeout_page_{page_number}.png"
+        screenshot_path = f"{DOWNLOAD_DIR}/timeout_page_{page_number}.png"
         driver.save_screenshot(screenshot_path)
         logging.warning(f"⚠️ Timeout on page {page_number}. Screenshot saved to {screenshot_path}")
         return BeautifulSoup("", "html.parser")
@@ -150,45 +226,34 @@ def save_to_postgres(df):
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS archimonsters (
-                        id SERIAL PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        level TEXT,
-                        url_image TEXT,
-                        local_image TEXT,
-                        UNIQUE(name, url_image)
-                    );
-                """)
                 for _, row in df.iterrows():
                     cur.execute("""
                         INSERT INTO archimonsters (name, level, url_image, local_image)
                         VALUES (%s, %s, %s, %s)
-                        ON CONFLICT (name, url_image) DO NOTHING;
+                        ON CONFLICT (name) DO UPDATE
+                        SET level = EXCLUDED.level,
+                            url_image = EXCLUDED.url_image,
+                            local_image = EXCLUDED.local_image;
                     """, (row["name"], row["level"], row["url_image"], row["local_image"]))
                 conn.commit()
         logging.info("✅ Data saved to PostgreSQL")
     except Exception as e:
         logging.error(f"❌ PostgreSQL error: {e}")
 
+def get_user_ids():
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users;")
+            return [row[0] for row in cur.fetchall()]
+
 def populate_user_monsters(df):
-    # Use TEXT type for user_id so strings like 'user_1' work without error
-    users = ['user_1', 'user_2']
+    user_ids = get_user_ids()
     sample_names = df["name"].tolist()
 
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS user_monsters (
-                        id SERIAL PRIMARY KEY,
-                        user_id TEXT NOT NULL,
-                        monster_name TEXT NOT NULL,
-                        quantity INTEGER DEFAULT 0,
-                        UNIQUE(user_id, monster_name)
-                    );
-                """)
-                for user in users:
+                for user_id in user_ids:
                     user_sample = random.sample(sample_names, min(12, len(sample_names)))
                     for name in user_sample:
                         qty = random.randint(1, 5)
@@ -197,7 +262,7 @@ def populate_user_monsters(df):
                             VALUES (%s, %s, %s)
                             ON CONFLICT (user_id, monster_name) DO UPDATE
                             SET quantity = EXCLUDED.quantity;
-                        """, (user, name, qty))
+                        """, (user_id, name, qty))
                 conn.commit()
         logging.info("🧪 Test data with quantities inserted.")
     except Exception as e:
@@ -217,15 +282,20 @@ def run_scraper(pages=PAGES_TO_SCRAPE):
         driver.quit()
     return pd.DataFrame(all_monsters)
 
-# ====== Run the Scraper ======
+# ====== Main ======
 if __name__ == "__main__":
-    df = run_scraper()
-    if not df.empty:
-        os.makedirs(EXPORT_DIR, exist_ok=True)
-        df.to_csv(os.path.join(EXPORT_DIR, "archimonsters.csv"), index=False)
-        df.to_json(os.path.join(EXPORT_DIR, "archimonsters.json"), orient="records", indent=2)
-        save_to_postgres(df)
-        populate_user_monsters(df)
-        logging.info(f"✅ Total monsters scraped: {len(df)}")
+    initialize_schema()
+    insert_test_users()
+
+    if is_already_scraped():
+        logging.info("✅ Skipping scraping since data already exists.")
     else:
-        logging.warning("⚠️ No data scraped.")
+        df = run_scraper()
+        if not df.empty:
+            os.makedirs(EXPORT_DIR, exist_ok=True)
+            df.to_csv(CSV_FILEPATH, index=False)
+            save_to_postgres(df)
+            populate_user_monsters(df)
+            logging.info(f"✅ Total monsters scraped: {len(df)}")
+        else:
+            logging.warning("⚠️ No data scraped.")

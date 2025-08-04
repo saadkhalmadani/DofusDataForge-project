@@ -40,7 +40,6 @@ def validate_user(username, password):
             with conn.cursor() as cur:
                 cur.execute("SELECT password FROM users WHERE username = %s", (username,))
                 row = cur.fetchone()
-                # TODO: Replace with hashed password check in production
                 return row and row[0] == password
     except Exception as e:
         st.error(f"❌ Login error: {e}")
@@ -83,6 +82,14 @@ def update_quantity(user_id, monster_name, change):
                 conn.commit()
     except Exception as e:
         st.error(f"❌ Update error: {e}")
+
+def safe_rerun():
+    if hasattr(st, "experimental_rerun"):
+        st.experimental_rerun()
+    elif hasattr(st, "rerun"):
+        st.rerun()
+    else:
+        st.warning("⚠️ Please manually refresh the page.")
 
 # ====== Streamlit Setup ======
 st.set_page_config(page_title="Dofus Archimonsters Viewer", layout="wide")
@@ -170,11 +177,11 @@ for idx, row in paginated_df.iterrows():
         with col1:
             if st.button("➕", key=f"inc_{idx}", help="Increase quantity"):
                 update_quantity(st.session_state.user_id, row["name"], 1)
-                st.experimental_rerun()
+                safe_rerun()
         with col2:
             if st.button("➖", key=f"dec_{idx}", help="Decrease quantity"):
                 update_quantity(st.session_state.user_id, row["name"], -1)
-                st.experimental_rerun()
+                safe_rerun()
 
 # ====== Summary ======
 total_owned = len(owned_names)
