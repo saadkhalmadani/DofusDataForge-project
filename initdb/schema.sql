@@ -20,3 +20,11 @@ CREATE TABLE IF NOT EXISTS user_monsters (
     UNIQUE(user_id, monster_name)
 );
 
+-- Fix SERIAL sequence for user_monsters to prevent duplicate key errors
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'user_monsters_id_seq') THEN
+    PERFORM setval('user_monsters_id_seq', COALESCE((SELECT MAX(id) FROM user_monsters), 0) + 1, false);
+  END IF;
+END
+$$;

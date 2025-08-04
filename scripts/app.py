@@ -58,7 +58,7 @@ if not os.path.exists(CSV_PATH):
 
 df = pd.read_csv(CSV_PATH)
 
-# ====== Extract numeric level ======
+# ====== Extract numeric level for filtering ======
 df["level_num"] = df["level"].astype(str).str.extract(r'(\d+)')[0].fillna(0).astype(int)
 
 # ====== Streamlit Setup ======

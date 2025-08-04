@@ -1,10 +1,13 @@
+
 services:
 
   db:
     image: postgres:15-alpine
     container_name: dofus_postgres
+    env_file:
+      - .env
     ports:
-      - ${POSTGRES_PORT}:5432
+      - "${POSTGRES_PORT}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -23,6 +26,8 @@ services:
       context: .
       dockerfile: Dockerfile.scraper
     container_name: dofus_scraper
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -35,6 +40,8 @@ services:
       context: .
       dockerfile: Dockerfile.streamlit
     container_name: dofus_streamlit
+    env_file:
+      - .env
     environment:
       DB_HOST: db
       DB_USER: ${POSTGRES_USER}
@@ -48,7 +55,6 @@ services:
     volumes:
       - .:/app
       - ./download:/app/download
-
 
 volumes:
   pgdata:

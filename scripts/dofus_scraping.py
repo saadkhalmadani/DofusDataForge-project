@@ -1,7 +1,8 @@
 import os
 import re
-import logging
+import time
 import random
+import logging
 import requests
 import pandas as pd
 import psycopg2
@@ -12,10 +13,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 from dotenv import load_dotenv
 
-# ====== Load environment variables ======
+# ====== Load Environment Variables ======
 load_dotenv()
 
 # ====== Config ======
@@ -23,9 +24,13 @@ BASE_URL = "https://www.dofus-touch.com/fr/mmorpg/encyclopedie/monstres?text=&mo
 DOWNLOAD_DIR = "download/Images"
 EXPORT_DIR = "download"
 PAGES_TO_SCRAPE = 12
+WAIT_TIMEOUT = 30
 
 # ====== Logging ======
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # ====== DB Connection Helper ======
 def get_db_connection():
@@ -48,7 +53,7 @@ def get_db_connection():
             port=os.getenv("POSTGRES_PORT", "5432")
         )
 
-# ====== Web Scraper Setup ======
+# ====== WebDriver Setup ======
 def setup_driver():
     options = Options()
     options.add_argument("--headless")
@@ -60,6 +65,7 @@ def setup_driver():
     options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
     return webdriver.Chrome(options=options)
 
+# ====== Scraping Helpers ======
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name).replace(" ", "_").strip()
 
@@ -84,16 +90,23 @@ def download_image(url, monster_name, base_dir=DOWNLOAD_DIR):
 
 def get_page_html(driver, page_number):
     url = f"{BASE_URL}&page={page_number}"
-    driver.get(url)
     try:
-        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.TAG_NAME, "table")))
+        driver.get(url)
+        WebDriverWait(driver, WAIT_TIMEOUT).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "table.ak-table"))
+        )
         return BeautifulSoup(driver.page_source, "html.parser")
     except TimeoutException:
-        logging.warning(f"⚠️ Timeout on page {page_number}")
+        screenshot_path = f"download/timeout_page_{page_number}.png"
+        driver.save_screenshot(screenshot_path)
+        logging.warning(f"⚠️ Timeout on page {page_number}. Screenshot saved to {screenshot_path}")
+        return BeautifulSoup("", "html.parser")
+    except WebDriverException as e:
+        logging.error(f"❌ WebDriver error on page {page_number}: {e}")
         return BeautifulSoup("", "html.parser")
 
 def extract_monsters(soup):
-    table = soup.find("table")
+    table = soup.find("table", class_="ak-table")
     if not table:
         return []
 
@@ -196,11 +209,14 @@ def run_scraper(pages=PAGES_TO_SCRAPE):
         for i in range(1, pages + 1):
             logging.info(f"🔍 Scraping page {i}...")
             soup = get_page_html(driver, i)
-            all_monsters.extend(extract_monsters(soup))
+            monsters = extract_monsters(soup)
+            all_monsters.extend(monsters)
+            time.sleep(random.uniform(1.5, 3.0))  # polite delay
     finally:
         driver.quit()
     return pd.DataFrame(all_monsters)
 
+# ====== Run the Scraper ======
 if __name__ == "__main__":
     df = run_scraper()
     if not df.empty:
