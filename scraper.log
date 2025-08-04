@@ -1,0 +1,7 @@
+2025-08-04 02:29:01,993 - INFO - 🔍 Scraping page 1...
+2025-08-04 02:29:13,117 - WARNING - ⚠️ Timeout on page 1. Screenshot saved to download/timeout_page_1.png
+2025-08-04 02:29:13,124 - INFO - ✅ Saved CSV
+2025-08-04 02:29:13,128 - ERROR - ❌ Error inserting ownership data: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
+2025-08-04 02:29:13,128 - INFO - ✅ Total monsters scraped: 0

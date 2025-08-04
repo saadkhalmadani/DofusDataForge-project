@@ -33,18 +33,30 @@ def get_db_connection():
             port=os.getenv("POSTGRES_PORT", "5432")
         )
 
-# ====== Ownership Loading/Updating ======
-@st.cache_data(ttl=300)
-def get_all_users():
+# ====== Validate User ======
+def validate_user(username, password):
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT DISTINCT user_id FROM user_monsters ORDER BY user_id;")
-                return [row[0] for row in cur.fetchall()]
+                cur.execute("SELECT password FROM users WHERE username = %s", (username,))
+                row = cur.fetchone()
+                # TODO: Replace with hashed password check in production
+                return row and row[0] == password
     except Exception as e:
-        st.error(f"❌ Error loading users: {e}")
-        return []
+        st.error(f"❌ Login error: {e}")
+        return False
 
+def get_user_id_by_username(username):
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            row = cur.fetchone()
+            if row:
+                return row[0]
+            else:
+                raise ValueError(f"User {username} not found in DB")
+
+# ====== Monster Ownership ======
 def load_owned_monsters(user_id):
     try:
         with get_db_connection() as conn:
@@ -82,43 +94,42 @@ if not os.path.exists(CSV_PATH):
     st.stop()
 
 df = pd.read_csv(CSV_PATH)
-
-# Extract numeric level for filtering
 df["level_num"] = df["level"].astype(str).str.extract(r'(\d+)')[0].fillna(0).astype(int)
 
-# ====== Authentication ======
+# ====== Login Form ======
 if "user_id" not in st.session_state:
-    st.session_state.user_id = ""
-
-all_users = get_all_users()
+    st.session_state.user_id = None
+    st.session_state.username = ""
 
 st.sidebar.markdown("## 🔐 Login")
-username = st.sidebar.text_input("Username", value=st.session_state.user_id)
+username_input = st.sidebar.text_input("Username")
+password_input = st.sidebar.text_input("Password", type="password")
 login_button = st.sidebar.button("🔓 Login")
 
 if login_button:
-    username = username.strip()
-    if username in all_users:
-        st.session_state.user_id = username
-        st.success(f"✅ Logged in as {st.session_state.user_id}")
+    if validate_user(username_input.strip(), password_input.strip()):
+        user_id = get_user_id_by_username(username_input.strip())
+        if user_id:
+            st.session_state.user_id = user_id
+            st.session_state.username = username_input.strip()
+            st.success(f"✅ Logged in as {st.session_state.username}")
     else:
-        st.warning("❌ User not found. Please enter a valid username.")
-        st.session_state.user_id = ""
+        st.warning("❌ Invalid username or password.")
+        st.session_state.user_id = None
 
 if not st.session_state.user_id:
-    st.warning("👤 Please log in to manage ownership.")
+    st.warning("👤 Please log in to continue.")
     st.stop()
 
-current_user = st.session_state.user_id
-st.caption(f"Logged in as: `{current_user}`")
+# ====== Filters ======
+st.caption(f"Logged in as: `{st.session_state.username}`")
 
-# ====== Sidebar Filters ======
 ownership_filter = st.sidebar.radio("🎯 Filter by Ownership", ["All", "Owned", "Not Owned"])
 search_term = st.sidebar.text_input("🔍 Search monster by name").strip()
 level_range = st.sidebar.slider("🧪 Level Range", 0, 200, (0, 200))
 
-# ====== Filtering Logic ======
-owned_dict = load_owned_monsters(current_user)
+# ====== Filter Logic ======
+owned_dict = load_owned_monsters(st.session_state.user_id)
 owned_names = set(owned_dict.keys())
 
 filtered_df = df[
@@ -136,12 +147,11 @@ filtered_df.reset_index(drop=True, inplace=True)
 # ====== Pagination ======
 total_pages = (len(filtered_df) - 1) // MONSTERS_PER_PAGE + 1
 page_number = st.number_input("📄 Page", min_value=1, max_value=max(total_pages, 1), step=1)
-
 start = (page_number - 1) * MONSTERS_PER_PAGE
 end = start + MONSTERS_PER_PAGE
 paginated_df = filtered_df.iloc[start:end]
 
-# ====== Display Grid ======
+# ====== Display Monsters ======
 cols = st.columns(3)
 for idx, row in paginated_df.iterrows():
     col = cols[idx % 3]
@@ -158,12 +168,12 @@ for idx, row in paginated_df.iterrows():
 
         col1, col2 = st.columns([1, 1])
         with col1:
-            if st.button("+", key=f"inc_{idx}"):
-                update_quantity(current_user, row["name"], 1)
+            if st.button("➕", key=f"inc_{idx}", help="Increase quantity"):
+                update_quantity(st.session_state.user_id, row["name"], 1)
                 st.experimental_rerun()
         with col2:
-            if st.button("-", key=f"dec_{idx}"):
-                update_quantity(current_user, row["name"], -1)
+            if st.button("➖", key=f"dec_{idx}", help="Decrease quantity"):
+                update_quantity(st.session_state.user_id, row["name"], -1)
                 st.experimental_rerun()
 
 # ====== Summary ======
@@ -171,4 +181,18 @@ total_owned = len(owned_names)
 total_available = len(df)
 st.markdown("---")
 st.success(f"✅ Showing {len(paginated_df)} of {len(filtered_df)} monsters.")
-st.info(f"📊 `{current_user}` owns {total_owned} out of {total_available} monsters.")
+st.info(f"📊 `{st.session_state.username}` owns {total_owned} out of {total_available} monsters.")
+
+# ====== Export Owned Monsters as CSV ======
+if total_owned > 0:
+    owned_df = df[df["name"].isin(owned_dict.keys())].copy()
+    owned_df["quantity"] = owned_df["name"].map(owned_dict)
+
+    csv_data = owned_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="📤 Download Owned Monsters as CSV",
+        data=csv_data,
+        file_name=f"{st.session_state.username}_owned_monsters.csv",
+        mime="text/csv"
+    )

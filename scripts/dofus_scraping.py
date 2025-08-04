@@ -172,6 +172,7 @@ def save_to_postgres(df):
         logging.error(f"❌ PostgreSQL error: {e}")
 
 def populate_user_monsters(df):
+    # Use TEXT type for user_id so strings like 'user_1' work without error
     users = ['user_1', 'user_2']
     sample_names = df["name"].tolist()
 
