@@ -1,0 +1,1 @@
+# impliment logger as a class using sigleton design pattern with lazy initialization 
