@@ -22,7 +22,7 @@ def get_db_connection():
             user=parsed.username,
             password=parsed.password,
             host=parsed.hostname,
-            port=parsed.port or 5433
+            port=parsed.port or 5432
         )
     else:
         return psycopg2.connect(
@@ -30,7 +30,7 @@ def get_db_connection():
             user=os.getenv("POSTGRES_USER", "dofus_user"),
             password=os.getenv("POSTGRES_PASSWORD", "dofus_pass"),
             host=os.getenv("DB_HOST", "localhost"),
-            port=os.getenv("POSTGRES_PORT", "5433")
+            port=os.getenv("POSTGRES_PORT", "5432")
         )
 
 # ====== Validate User ======
