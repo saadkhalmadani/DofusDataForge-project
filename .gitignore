@@ -14,6 +14,7 @@ wheels/
 requirements-scraper.txt
 requirements-streamlit.txt
 
+download
 # git rm --cached file_name
 # git rm --cached -r directory_name
 
