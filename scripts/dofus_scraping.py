@@ -154,11 +154,18 @@ def download_image(url, monster_name, base_dir=DOWNLOAD_DIR):
     safe_name = sanitize_filename(monster_name)
     ext = get_extension_from_url(url)
     filepath = os.path.join(base_dir, f"{safe_name}{ext}")
+
+    # Skip download if file already exists
+    if os.path.exists(filepath):
+        logging.info(f"⏩ Skipping image for '{monster_name}' (already exists)")
+        return filepath
+
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         with open(filepath, "wb") as f:
             f.write(response.content)
+        logging.info(f"✅ Image downloaded for '{monster_name}'")
         return filepath
     except Exception as e:
         logging.warning(f"⚠️ Failed to download image for '{monster_name}': {e}")
