@@ -190,9 +190,9 @@ with st.sidebar:
     sort_asc = st.toggle("⬆️ Ascending", value=True)
     per_page = st.select_slider("📦 Items per page", options=[6, 9, 12, 15, 18, 24], value=12)
     st.markdown("---")
-    image_height = st.slider("🖼️ Image height (px)", min_value=80, max_value=320, value=160, step=10)
-    cols_per_row = st.slider("🧩 Columns per row", min_value=2, max_value=5, value=3)
-    compact_mode = st.toggle("📏 Compact mode", value=False, help="Reduce paddings and fonts for dense layout")
+    image_height = st.slider("🖼️ Image height (px)", min_value=80, max_value=320, value=120, step=10)
+    cols_per_row = st.slider("🧩 Columns per row", min_value=2, max_value=5, value=4)
+    compact_mode = st.toggle("📏 Compact mode", value=True, help="Reduce paddings and fonts for dense layout")
     clear_filters = st.button("🧹 Clear filters")
 
 if clear_filters:
