@@ -155,7 +155,7 @@ cols_login = st.sidebar.columns([1,1])
 with cols_login[0]:
     login_button = st.button("🔓 Login")
 with cols_login[1]:
-    logout_button = st.button("� Logout")
+         logout_button = st.button("🚪 Logout")
 
 if login_button:
     if validate_user(username_input.strip(), password_input.strip()):
@@ -206,7 +206,7 @@ with st.sidebar:
         step=10,
         key="image_height",
     )
-    cols_per_row = st.slider("� Columns per row", min_value=2, max_value=6, value=5)
+    cols_per_row = st.slider("🧱 Columns per row", min_value=2, max_value=6, value=5)
     compact_mode = st.toggle("📏 Compact mode", value=True, help="Reduce paddings and fonts for dense layout")
     clear_filters = st.button("🧹 Clear filters")
 
@@ -227,7 +227,7 @@ st.markdown(
     f"""
     <style>
     .monster-img img {{ max-height: {image_height}px; }}
-    {'.monster-card { padding: 0.5rem; } .monster-title { font-size: 0.95rem; } .mon-meta { font-size: 0.8rem; }' if compact_mode else ''}
+    {{'.monster-card { padding: 0.5rem; } .monster-title { font-size: 0.95rem; } .mon-meta { font-size: 0.8rem; } .stButton > button, div[data-testid="stButton"] > button, div[data-testid="baseButton-secondary"] > button, div[data-testid="stDownloadButton"] > button { padding: 0.25rem 0.45rem; min-height: 28px; height: 28px; line-height: 1; font-size: 0.85rem; border-radius: 6px; }' if compact_mode else ''}}
     </style>
     """,
     unsafe_allow_html=True,
