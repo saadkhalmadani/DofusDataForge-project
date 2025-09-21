@@ -192,6 +192,10 @@ with st.sidebar:
     st.markdown("---")
     size_preset = st.selectbox("🧩 Thumbnail size", ["Small", "Medium", "Large"], index=0, help="Quick presets for thumbnail size")
     _preset_map = {"Small": 90, "Medium": 120, "Large": 160}
+    if "last_size_preset" not in st.session_state:
+        st.session_state["last_size_preset"] = size_preset
+    if "image_height" not in st.session_state:
+        st.session_state["image_height"] = _preset_map[st.session_state["last_size_preset"]]
     if st.session_state.get("last_size_preset") != size_preset:
         st.session_state["image_height"] = _preset_map[size_preset]
         st.session_state["last_size_preset"] = size_preset
@@ -199,7 +203,6 @@ with st.sidebar:
         "🖼️ Image height (px)",
         min_value=60,
         max_value=320,
-        value=st.session_state.get("image_height", _preset_map[size_preset]),
         step=10,
         key="image_height",
     )
@@ -214,12 +217,10 @@ if clear_filters:
     show_missing_images = False
     sort_by, sort_asc = "Name", True
     per_page = 12
-    image_height = 90
-    cols_per_row = 5
-    compact_mode = True
     st.session_state["image_height"] = 90
     st.session_state["last_size_preset"] = "Small"
     st.toast("Filters cleared")
+    safe_rerun()
 
 # Dynamic style overrides
 st.markdown(
