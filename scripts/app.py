@@ -223,11 +223,28 @@ if clear_filters:
     safe_rerun()
 
 # Dynamic style overrides
+compact_css = """
+.monster-card { padding: 0.5rem; }
+.monster-title { font-size: 0.95rem; }
+.mon-meta { font-size: 0.8rem; }
+.stButton > button,
+div[data-testid="stButton"] > button,
+div[data-testid="baseButton-secondary"] > button,
+div[data-testid="stDownloadButton"] > button {
+  padding: 0.25rem 0.45rem;
+  min-height: 28px;
+  height: 28px;
+  line-height: 1;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+"""
+
 st.markdown(
     f"""
     <style>
     .monster-img img {{ max-height: {image_height}px; }}
-    {{'.monster-card { padding: 0.5rem; } .monster-title { font-size: 0.95rem; } .mon-meta { font-size: 0.8rem; } .stButton > button, div[data-testid="stButton"] > button, div[data-testid="baseButton-secondary"] > button, div[data-testid="stDownloadButton"] > button { padding: 0.25rem 0.45rem; min-height: 28px; height: 28px; line-height: 1; font-size: 0.85rem; border-radius: 6px; }' if compact_mode else ''}}
+    {compact_css if compact_mode else ''}
     </style>
     """,
     unsafe_allow_html=True,
