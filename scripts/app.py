@@ -296,13 +296,13 @@ paginated_df = filtered_df.iloc[start:end]
 
 # ====== Display Monsters ======
 @st.cache_data(show_spinner=False)
-def load_resized_image(path: str, target_h: int) -> bytes:
+def load_resized_image(path: str, target_h: int) -> tuple[bytes, int]:
     try:
         with Image.open(path) as im:
             # Preserve aspect ratio based on target height
             w, h = im.size
             if h <= 0:
-                return b""
+                return b"", 0
             new_w = max(1, int(w * (target_h / h)))
             # Convert mode for consistent output
             if im.mode not in ("RGB", "RGBA"):
@@ -310,9 +310,9 @@ def load_resized_image(path: str, target_h: int) -> bytes:
             im = im.resize((new_w, target_h), Image.LANCZOS)
             buf = BytesIO()
             im.save(buf, format="PNG", optimize=True)
-            return buf.getvalue()
+            return buf.getvalue(), new_w
     except Exception:
-        return b""
+        return b"", 0
 
 tab_browse, tab_stats, tab_table = st.tabs(["🔎 Browse", "📈 Statistics", "📋 Table"])
 
@@ -327,12 +327,12 @@ with tab_browse:
             with st.container():
                 if isinstance(img_path, str) and os.path.exists(img_path):
                     st.markdown("<div class='monster-img'>", unsafe_allow_html=True)
-                    img_bytes = load_resized_image(img_path, image_height)
+                    img_bytes, new_w = load_resized_image(img_path, image_height)
                     if img_bytes:
-                        st.image(img_bytes, use_container_width=True)
+                        st.image(img_bytes, width=new_w)
                     else:
                         # Fallback to file if resizing failed
-                        st.image(img_path, use_container_width=True)
+                        st.image(img_path, width=int(image_height))
                     st.markdown("</div>", unsafe_allow_html=True)
                 else:
                     st.info("🖼️ Image not found", icon="ℹ️")
