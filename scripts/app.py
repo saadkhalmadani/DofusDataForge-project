@@ -1,10 +1,12 @@
 import os
+from io import BytesIO
 import pandas as pd
 import streamlit as st
 import psycopg2
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 from datetime import datetime
+from PIL import Image
 
 # ====== Load environment variables ======
 load_dotenv()
@@ -119,7 +121,7 @@ st.markdown(
     }
     .monster-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); transform: translateY(-2px); }
     .monster-title { font-weight: 700; margin: 0.25rem 0 0.5rem 0; }
-    .monster-img img { object-fit: contain; width: 100%; height: 180px; border-radius: 8px; background: #f8f9fa; }
+    .monster-img img { object-fit: contain; width: 100%; height: auto; max-height: 180px; border-radius: 8px; background: #f8f9fa; }
     .mon-meta { color: #666; font-size: 0.9rem; margin-top: .25rem; }
     .filters .stSlider > div > div { padding-top: 0.25rem; }
     .muted { color:#888; }
@@ -187,6 +189,10 @@ with st.sidebar:
     sort_by = st.selectbox("↕️ Sort by", ["Name", "Level"], index=0)
     sort_asc = st.toggle("⬆️ Ascending", value=True)
     per_page = st.select_slider("📦 Items per page", options=[6, 9, 12, 15, 18, 24], value=12)
+    st.markdown("---")
+    image_height = st.slider("🖼️ Image height (px)", min_value=80, max_value=320, value=160, step=10)
+    cols_per_row = st.slider("🧩 Columns per row", min_value=2, max_value=5, value=3)
+    compact_mode = st.toggle("📏 Compact mode", value=False, help="Reduce paddings and fonts for dense layout")
     clear_filters = st.button("🧹 Clear filters")
 
 if clear_filters:
@@ -197,6 +203,17 @@ if clear_filters:
     sort_by, sort_asc = "Name", True
     per_page = 12
     st.toast("Filters cleared")
+
+# Dynamic style overrides
+st.markdown(
+    f"""
+    <style>
+    .monster-img img {{ max-height: {image_height}px; }}
+    {'.monster-card { padding: 0.5rem; } .monster-title { font-size: 0.95rem; } .mon-meta { font-size: 0.8rem; }' if compact_mode else ''}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ====== Filter Logic ======
 owned_dict = load_owned_monsters(st.session_state.user_id)
@@ -260,12 +277,31 @@ end = start + per_page
 paginated_df = filtered_df.iloc[start:end]
 
 # ====== Display Monsters ======
+@st.cache_data(show_spinner=False)
+def load_resized_image(path: str, target_h: int) -> bytes:
+    try:
+        with Image.open(path) as im:
+            # Preserve aspect ratio based on target height
+            w, h = im.size
+            if h <= 0:
+                return b""
+            new_w = max(1, int(w * (target_h / h)))
+            # Convert mode for consistent output
+            if im.mode not in ("RGB", "RGBA"):
+                im = im.convert("RGBA")
+            im = im.resize((new_w, target_h), Image.LANCZOS)
+            buf = BytesIO()
+            im.save(buf, format="PNG", optimize=True)
+            return buf.getvalue()
+    except Exception:
+        return b""
+
 tab_browse, tab_stats, tab_table = st.tabs(["🔎 Browse", "📈 Statistics", "📋 Table"])
 
 with tab_browse:
-    cols = st.columns(3)
+    cols = st.columns(cols_per_row)
     for idx, row in paginated_df.iterrows():
-        col = cols[idx % 3]
+        col = cols[idx % cols_per_row]
         with col:
             st.markdown("<div class='monster-card'>", unsafe_allow_html=True)
             st.markdown(f"<div class='monster-title'>{row['name']}</div>", unsafe_allow_html=True)
@@ -273,7 +309,12 @@ with tab_browse:
             with st.container():
                 if isinstance(img_path, str) and os.path.exists(img_path):
                     st.markdown("<div class='monster-img'>", unsafe_allow_html=True)
-                    st.image(img_path, use_container_width=True)
+                    img_bytes = load_resized_image(img_path, image_height)
+                    if img_bytes:
+                        st.image(img_bytes, use_container_width=True)
+                    else:
+                        # Fallback to file if resizing failed
+                        st.image(img_path, use_container_width=True)
                     st.markdown("</div>", unsafe_allow_html=True)
                 else:
                     st.info("🖼️ Image not found", icon="ℹ️")
@@ -308,6 +349,15 @@ with tab_browse:
                             safe_rerun()
                         else:
                             st.toast("Already 0")
+                    set_qty = st.number_input("Set quantity", min_value=0, max_value=999, value=int(qty), key=f"setqty_{idx}")
+                    if st.button("Apply", key=f"applyqty_{idx}"):
+                        delta = int(set_qty) - int(qty)
+                        if delta != 0:
+                            update_quantity(st.session_state.user_id, row["name"], delta)
+                            st.toast(f"Set {row['name']} to {int(set_qty)}")
+                            safe_rerun()
+                        else:
+                            st.toast("No change")
             st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_stats:
@@ -338,6 +388,14 @@ with tab_table:
     table_df = filtered_df.copy()
     table_df["owned_qty"] = table_df["name"].map(owned_dict).fillna(0).astype(int)
     st.dataframe(table_df[["name", "level", "level_num", "owned_qty", "local_image"]], use_container_width=True, hide_index=True)
+    dl_cols = st.columns([1,1,4])
+    with dl_cols[0]:
+        st.download_button(
+            label="⬇️ Download filtered CSV",
+            data=table_df.to_csv(index=False).encode("utf-8"),
+            file_name=f"filtered_monsters_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+        )
 
 # ====== Summary ======
 total_owned = len(owned_names)
