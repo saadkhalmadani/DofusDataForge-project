@@ -222,7 +222,7 @@ with st.sidebar:
         key="image_height",
     )
     if "cols_per_row" not in st.session_state:
-        st.session_state["cols_per_row"] = 2
+        st.session_state["cols_per_row"] = 4
     cols_per_row = st.slider("🧱 Columns per row", min_value=2, max_value=6, step=1, key="cols_per_row")
     compact_mode = st.toggle("📏 Compact mode", value=True, help="Reduce paddings and fonts for dense layout")
     clear_filters = st.button("🧹 Clear filters")
@@ -237,7 +237,7 @@ if clear_filters:
     # Defer changing widget-backed keys until next run to avoid Streamlit API exception
     st.session_state["pending_image_height"] = 60
     st.session_state["pending_size_preset"] = "XS"
-    st.session_state["pending_cols_per_row"] = 2
+    st.session_state["pending_cols_per_row"] = 4
     st.toast("Filters cleared")
     safe_rerun()
 
