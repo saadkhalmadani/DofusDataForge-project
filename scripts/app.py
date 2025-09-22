@@ -262,7 +262,7 @@ button[kind="secondary"] {
     border-radius: 6px;
 }
     /* Card-local buttons even smaller */
-.monster-card .stButton > button { padding: 0.10rem 0.26rem; min-height: 20px; height: 20px; font-size: 0.72rem; }
+   .monster-card .stButton > button { padding: 0.06rem 0.22rem; min-height: 18px; height: 18px; font-size: 0.7rem; min-width: 26px; }
 /* Number input (pager) */
 div[data-testid="stNumberInput"] input {
         padding: 0.12rem 0.35rem;
