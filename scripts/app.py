@@ -202,8 +202,11 @@ with st.sidebar:
     sort_asc = st.toggle("⬆️ Ascending", value=True)
     per_page = st.select_slider("📦 Items per page", options=[6, 9, 12, 15, 18, 24], value=12)
     st.markdown("---")
-    size_preset = st.selectbox("🧩 Thumbnail size", ["Small", "Medium", "Large"], index=0, help="Quick presets for thumbnail size")
-    _preset_map = {"Small": 90, "Medium": 120, "Large": 160}
+    _size_options = ["XS", "Small", "Medium", "Large"]
+    _preset_map = {"XS": 60, "Small": 90, "Medium": 120, "Large": 160}
+    _default_preset = st.session_state.get("last_size_preset", "XS")
+    _initial_index = _size_options.index(_default_preset) if _default_preset in _size_options else _size_options.index("XS")
+    size_preset = st.selectbox("🧩 Thumbnail size", _size_options, index=_initial_index, help="Quick presets for thumbnail size")
     if "last_size_preset" not in st.session_state:
         st.session_state["last_size_preset"] = size_preset
     if "image_height" not in st.session_state:
@@ -232,15 +235,15 @@ if clear_filters:
     sort_by, sort_asc = "Name", True
     per_page = 12
     # Defer changing widget-backed keys until next run to avoid Streamlit API exception
-    st.session_state["pending_image_height"] = 90
-    st.session_state["pending_size_preset"] = "Small"
+    st.session_state["pending_image_height"] = 60
+    st.session_state["pending_size_preset"] = "XS"
     st.session_state["pending_cols_per_row"] = 2
     st.toast("Filters cleared")
     safe_rerun()
 
 # Dynamic style overrides
 compact_css = """
-.monster-card { padding: 0.5rem; }
+.monster-card { padding: 0.5rem; margin-bottom: 0.5rem; }
 .monster-title { font-size: 0.95rem; }
 .mon-meta { font-size: 0.8rem; }
 /* General buttons */
@@ -251,22 +254,28 @@ div[data-testid="baseButton-primary"] > button,
 div[data-testid="stDownloadButton"] > button,
 div[data-testid="stPopoverButton"] > button,
 button[kind="secondary"] {
-    padding: 0.20rem 0.35rem;
-    min-height: 24px;
-    height: 24px;
-    line-height: 1;
-    font-size: 0.80rem;
+    padding: 0.12rem 0.28rem;
+    min-height: 20px;
+    height: 20px;
+        line-height: 1;
+    font-size: 0.72rem;
     border-radius: 6px;
 }
+    /* Card-local buttons even smaller */
+.monster-card .stButton > button { padding: 0.10rem 0.26rem; min-height: 20px; height: 20px; font-size: 0.72rem; }
 /* Number input (pager) */
 div[data-testid="stNumberInput"] input {
-    padding: 0.15rem 0.4rem;
-    height: 28px;
-    font-size: 0.85rem;
+        padding: 0.12rem 0.35rem;
+        height: 26px;
+        font-size: 0.8rem;
 }
 div[data-testid="stNumberInput"] button {
     transform: scale(0.9);
 }
+/* Narrow number input inside cards */
+.monster-card div[data-testid=\"stNumberInput\"] input { width: 64px; }
+/* Reduce column gutters a bit */
+div[data-testid=\"column\"] { padding-left: 0.25rem; padding-right: 0.25rem; }
 """
 
 st.markdown(
@@ -403,7 +412,7 @@ with tab_browse:
                     st.toast(f"Removed 1 from {row['name']}")
                     safe_rerun()
             with c3:
-                with st.popover("More …", use_container_width=True):
+                with st.popover("⋯", use_container_width=True):
                     st.caption("Quick actions")
                     if st.button("Reset to 0", key=f"reset_{idx}"):
                         # Set to 0 by subtracting current qty if any
