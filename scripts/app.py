@@ -186,11 +186,14 @@ with st.sidebar:
     if (
         "pending_image_height" in st.session_state
         or "pending_size_preset" in st.session_state
+        or "pending_cols_per_row" in st.session_state
     ):
         if "pending_size_preset" in st.session_state:
             st.session_state["last_size_preset"] = st.session_state.pop("pending_size_preset")
         if "pending_image_height" in st.session_state:
             st.session_state["image_height"] = st.session_state.pop("pending_image_height")
+        if "pending_cols_per_row" in st.session_state:
+            st.session_state["cols_per_row"] = st.session_state.pop("pending_cols_per_row")
     ownership_filter = st.radio("🎯 Ownership", ["All", "Owned", "Not Owned"], horizontal=True)
     search_term = st.text_input("🔍 Search", placeholder="Type a monster name...").strip()
     level_range = st.slider("🧪 Level Range", 0, 200, (0, 200))
@@ -215,7 +218,9 @@ with st.sidebar:
         step=10,
         key="image_height",
     )
-    cols_per_row = st.slider("🧱 Columns per row", min_value=2, max_value=6, value=5)
+    if "cols_per_row" not in st.session_state:
+        st.session_state["cols_per_row"] = 2
+    cols_per_row = st.slider("🧱 Columns per row", min_value=2, max_value=6, step=1, key="cols_per_row")
     compact_mode = st.toggle("📏 Compact mode", value=True, help="Reduce paddings and fonts for dense layout")
     clear_filters = st.button("🧹 Clear filters")
 
@@ -229,6 +234,7 @@ if clear_filters:
     # Defer changing widget-backed keys until next run to avoid Streamlit API exception
     st.session_state["pending_image_height"] = 90
     st.session_state["pending_size_preset"] = "Small"
+    st.session_state["pending_cols_per_row"] = 2
     st.toast("Filters cleared")
     safe_rerun()
 
