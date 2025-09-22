@@ -262,7 +262,7 @@ button[kind="secondary"] {
     border-radius: 6px;
 }
     /* Card-local buttons even smaller */
-   .monster-card .stButton > button { padding: 0.06rem 0.22rem; min-height: 18px; height: 18px; font-size: 0.7rem; min-width: 26px; }
+.monster-card .stButton > button { padding: 0.10rem 0.26rem; min-height: 20px; height: 20px; font-size: 0.72rem; }
 /* Number input (pager) */
 div[data-testid="stNumberInput"] input {
         padding: 0.12rem 0.35rem;
@@ -271,6 +271,15 @@ div[data-testid="stNumberInput"] input {
 }
 div[data-testid="stNumberInput"] button {
     transform: scale(0.9);
+}
+/* Extra-small circular qty buttons */
+.monster-card .qty-btn .stButton > button {
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0.7rem;
 }
 /* Narrow number input inside cards */
 .monster-card div[data-testid=\"stNumberInput\"] input { width: 64px; }
@@ -402,15 +411,19 @@ with tab_browse:
 
             c1, c2, c3 = st.columns([1,1,2])
             with c1:
+                st.markdown("<div class='qty-btn'>", unsafe_allow_html=True)
                 if st.button("➕", key=f"inc_{idx}", help="Increase quantity"):
                     update_quantity(st.session_state.user_id, row["name"], 1)
                     st.toast(f"Added 1 to {row['name']}")
                     safe_rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
             with c2:
+                st.markdown("<div class='qty-btn'>", unsafe_allow_html=True)
                 if st.button("➖", key=f"dec_{idx}", help="Decrease quantity"):
                     update_quantity(st.session_state.user_id, row["name"], -1)
                     st.toast(f"Removed 1 from {row['name']}")
                     safe_rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
             with c3:
                 with st.popover("⋯", use_container_width=True):
                     st.caption("Quick actions")
