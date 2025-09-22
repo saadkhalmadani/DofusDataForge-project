@@ -182,6 +182,15 @@ st.caption(f"Logged in as: `{st.session_state.username}`")
 
 with st.sidebar:
     st.markdown("### 🎛️ Filters", help="Refine the list of monsters")
+    # Apply any pending resets BEFORE creating widgets with those keys
+    if (
+        "pending_image_height" in st.session_state
+        or "pending_size_preset" in st.session_state
+    ):
+        if "pending_size_preset" in st.session_state:
+            st.session_state["last_size_preset"] = st.session_state.pop("pending_size_preset")
+        if "pending_image_height" in st.session_state:
+            st.session_state["image_height"] = st.session_state.pop("pending_image_height")
     ownership_filter = st.radio("🎯 Ownership", ["All", "Owned", "Not Owned"], horizontal=True)
     search_term = st.text_input("🔍 Search", placeholder="Type a monster name...").strip()
     level_range = st.slider("🧪 Level Range", 0, 200, (0, 200))
@@ -217,8 +226,9 @@ if clear_filters:
     show_missing_images = False
     sort_by, sort_asc = "Name", True
     per_page = 12
-    st.session_state["image_height"] = 90
-    st.session_state["last_size_preset"] = "Small"
+    # Defer changing widget-backed keys until next run to avoid Streamlit API exception
+    st.session_state["pending_image_height"] = 90
+    st.session_state["pending_size_preset"] = "Small"
     st.toast("Filters cleared")
     safe_rerun()
 
@@ -227,16 +237,29 @@ compact_css = """
 .monster-card { padding: 0.5rem; }
 .monster-title { font-size: 0.95rem; }
 .mon-meta { font-size: 0.8rem; }
+/* General buttons */
 .stButton > button,
 div[data-testid="stButton"] > button,
 div[data-testid="baseButton-secondary"] > button,
-div[data-testid="stDownloadButton"] > button {
-  padding: 0.25rem 0.45rem;
-  min-height: 28px;
-  height: 28px;
-  line-height: 1;
-  font-size: 0.85rem;
-  border-radius: 6px;
+div[data-testid="baseButton-primary"] > button,
+div[data-testid="stDownloadButton"] > button,
+div[data-testid="stPopoverButton"] > button,
+button[kind="secondary"] {
+    padding: 0.20rem 0.35rem;
+    min-height: 24px;
+    height: 24px;
+    line-height: 1;
+    font-size: 0.80rem;
+    border-radius: 6px;
+}
+/* Number input (pager) */
+div[data-testid="stNumberInput"] input {
+    padding: 0.15rem 0.4rem;
+    height: 28px;
+    font-size: 0.85rem;
+}
+div[data-testid="stNumberInput"] button {
+    transform: scale(0.9);
 }
 """
 
@@ -291,7 +314,7 @@ if st.session_state.page_number > total_pages:
 
 pager_cols = st.columns([1, 2, 1, 3])
 with pager_cols[0]:
-    if st.button("⬅️ Prev", disabled=st.session_state.page_number <= 1):
+    if st.button("◀", disabled=st.session_state.page_number <= 1, help="Previous page"):
         set_page(st.session_state.page_number - 1)
 with pager_cols[1]:
     st.number_input(
@@ -302,7 +325,7 @@ with pager_cols[1]:
         key="page_number",
     )
 with pager_cols[2]:
-    if st.button("Next ➡️", disabled=st.session_state.page_number >= total_pages):
+    if st.button("▶", disabled=st.session_state.page_number >= total_pages, help="Next page"):
         set_page(st.session_state.page_number + 1)
 with pager_cols[3]:
     st.caption(f"Page {st.session_state.page_number} of {max(total_pages, 1)} — {len(filtered_df)} results")
